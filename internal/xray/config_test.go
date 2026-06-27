@@ -175,3 +175,33 @@ func TestBuildConfigRejectsHysteria2(t *testing.T) {
 		t.Fatal("expected error for hysteria2 (unsupported by xray-core)")
 	}
 }
+
+func TestBuildConfigBypassRU(t *testing.T) {
+	s := &link.Server{Protocol: "vless", Address: "h", Port: 443, UUID: "u", Network: "tcp", Security: "none"}
+	m := buildMap(t, s, Options{SocksPort: 10808, Bypass: "ru"})
+
+	if v := get(t, m, "routing.domainStrategy"); v != "IPIfNonMatch" {
+		t.Errorf("domainStrategy = %v, want IPIfNonMatch", v)
+	}
+	if v := get(t, m, "routing.rules.0.domain.0"); v != "geosite:category-ru" {
+		t.Errorf("rule0 domain0 = %v, want geosite:category-ru", v)
+	}
+	if v := get(t, m, "routing.rules.0.outboundTag"); v != "direct" {
+		t.Errorf("rule0 outboundTag = %v, want direct", v)
+	}
+	if v := get(t, m, "routing.rules.1.ip.0"); v != "geoip:private" {
+		t.Errorf("rule1 ip0 = %v, want geoip:private", v)
+	}
+	if v := get(t, m, "routing.rules.1.ip.1"); v != "geoip:ru" {
+		t.Errorf("rule1 ip1 = %v, want geoip:ru", v)
+	}
+}
+
+func TestBuildConfigBypassOff(t *testing.T) {
+	s := &link.Server{Protocol: "vless", Address: "h", Port: 443, UUID: "u", Network: "tcp", Security: "none"}
+	m := buildMap(t, s, Options{SocksPort: 10808, Bypass: "off"})
+
+	if _, ok := m["routing"]; ok {
+		t.Errorf("routing present for bypass=off, want absent")
+	}
+}

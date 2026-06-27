@@ -16,13 +16,15 @@ type Options struct {
 	Listen    string // inbound listen address; default 127.0.0.1
 	SocksPort int    // SOCKS inbound port; 0 disables
 	HTTPPort  int    // HTTP inbound port; 0 disables
+	Bypass    string // "ru" routes RU traffic direct; "off"/"" adds no routing
 }
 
 // Config is the root xray configuration object.
 type Config struct {
-	Log       *LogConfig `json:"log,omitempty"`
-	Inbounds  []Inbound  `json:"inbounds"`
-	Outbounds []Outbound `json:"outbounds"`
+	Log       *LogConfig     `json:"log,omitempty"`
+	Inbounds  []Inbound      `json:"inbounds"`
+	Outbounds []Outbound     `json:"outbounds"`
+	Routing   *RoutingConfig `json:"routing,omitempty"`
 }
 
 // JSON marshals the config to the bytes accepted by xray-core's JSON loader.
@@ -51,6 +53,30 @@ type Outbound struct {
 	Protocol       string          `json:"protocol"`
 	Settings       any             `json:"settings,omitempty"`
 	StreamSettings *StreamSettings `json:"streamSettings,omitempty"`
+}
+
+type RoutingConfig struct {
+	DomainStrategy string        `json:"domainStrategy,omitempty"`
+	Rules          []RoutingRule `json:"rules,omitempty"`
+}
+
+type RoutingRule struct {
+	Type        string   `json:"type"`
+	Domain      []string `json:"domain,omitempty"`
+	IP          []string `json:"ip,omitempty"`
+	OutboundTag string   `json:"outboundTag"`
+}
+
+// ruBypassRouting routes Russian domains/IPs (and private IPs) straight out the
+// "direct" outbound; everything else falls through to the first ("proxy") one.
+func ruBypassRouting() *RoutingConfig {
+	return &RoutingConfig{
+		DomainStrategy: "IPIfNonMatch",
+		Rules: []RoutingRule{
+			{Type: "field", Domain: []string{"geosite:category-ru"}, OutboundTag: "direct"},
+			{Type: "field", IP: []string{"geoip:private", "geoip:ru"}, OutboundTag: "direct"},
+		},
+	}
 }
 
 type StreamSettings struct {
@@ -118,7 +144,7 @@ func BuildConfig(s *link.Server, opts Options) (*Config, error) {
 		loglevel = "warning"
 	}
 
-	return &Config{
+	cfg := &Config{
 		Log:      &LogConfig{Loglevel: loglevel},
 		Inbounds: inbounds,
 		Outbounds: []Outbound{
@@ -126,7 +152,11 @@ func BuildConfig(s *link.Server, opts Options) (*Config, error) {
 			{Tag: "direct", Protocol: "freedom"},
 			{Tag: "block", Protocol: "blackhole"},
 		},
-	}, nil
+	}
+	if opts.Bypass == "ru" {
+		cfg.Routing = ruBypassRouting()
+	}
+	return cfg, nil
 }
 
 func buildInbounds(opts Options) ([]Inbound, error) {
