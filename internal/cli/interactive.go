@@ -13,6 +13,7 @@ import (
 
 	"github.com/aimuzov/happ-cli/internal/link"
 	"github.com/aimuzov/happ-cli/internal/store"
+	"github.com/aimuzov/happ-cli/internal/ui"
 	"github.com/aimuzov/happ-cli/internal/xray"
 )
 
@@ -145,7 +146,7 @@ func interactiveFlow(ctx context.Context) error {
 		return err
 	}
 
-	fmt.Printf("Server #%d: %s [%s] %s:%d\n", idx+1, srv.Tag, srv.Protocol, srv.Address, srv.Port)
+	ui.Server(idx, *srv)
 	if m.Mode == "tun" {
 		return runTun(ctx, srv, defaultSocksPort, bypass)
 	}
@@ -160,7 +161,7 @@ func reexecWithSudo(self, home, subName string, idx int, m method) error {
 		return fmt.Errorf("cannot elevate: sudo not found in PATH: %w", err)
 	}
 	argv := buildSudoArgs(self, home, subName, idx, m)
-	fmt.Printf("Elevating with sudo for %s mode...\n", m.Mode)
+	ui.Info("Elevating with sudo for %s mode...", m.Mode)
 	return syscall.Exec(sudoPath, argv, os.Environ())
 }
 

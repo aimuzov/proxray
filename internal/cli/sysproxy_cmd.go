@@ -1,11 +1,10 @@
 package cli
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
 	"github.com/aimuzov/happ-cli/internal/sysproxy"
+	"github.com/aimuzov/happ-cli/internal/ui"
 )
 
 func newSysProxyCmd() *cobra.Command {
@@ -30,7 +29,7 @@ func sysProxyOffCmd() *cobra.Command {
 			if err := sysproxy.DisableAll(); err != nil {
 				return err
 			}
-			fmt.Println("System proxy disabled on all network services.")
+			ui.Success("System proxy disabled on all network services.")
 			return nil
 		},
 	}
