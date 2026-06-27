@@ -148,9 +148,10 @@ func runTun(ctx context.Context, srv *link.Server, socksPort int, bypass string)
 	pinned.Address = ips[0]
 
 	// In tun mode the routing table sends everything into the tunnel, so the
-	// direct (bypass) outbound must be bound to the physical interface or its
-	// sockets loop back through utun. Resolve the interface before the tunnel
-	// rewrites routes.
+	// direct (bypass) outbound must be bound to the interface used to reach the
+	// server (the same path the tunnel pins the server connection to) or its
+	// sockets loop back through utun. Resolve it before the tunnel rewrites
+	// routes.
 	var directIface string
 	if bypass != "off" {
 		directIface, err = tunnel.InterfaceTo(ips[0])
