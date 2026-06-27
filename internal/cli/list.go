@@ -2,11 +2,10 @@ package cli
 
 import (
 	"fmt"
-	"os"
-	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
+	"github.com/aimuzov/happ-cli/internal/ui"
 	"github.com/aimuzov/happ-cli/internal/xray"
 )
 
@@ -28,19 +27,24 @@ func newListCmd() *cobra.Command {
 			}
 			servers := sub.Servers()
 			if len(servers) == 0 {
-				fmt.Printf("Subscription %q has no servers.\n", sub.Name)
+				ui.Info("Subscription %q has no servers.", sub.Name)
 				return nil
 			}
-			tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-			fmt.Fprintf(tw, "#\tPROTOCOL\tADDRESS\tTAG\n")
+			rows := make([][]string, 0, len(servers))
 			for i, s := range servers {
 				note := s.Protocol
 				if !xray.Supported(s.Protocol) {
 					note += " (unsupported)"
 				}
-				fmt.Fprintf(tw, "%d\t%s\t%s:%d\t%s\n", i+1, note, s.Address, s.Port, s.Tag)
+				rows = append(rows, []string{
+					fmt.Sprintf("%d", i+1),
+					note,
+					fmt.Sprintf("%s:%d", s.Address, s.Port),
+					s.Tag,
+				})
 			}
-			return tw.Flush()
+			fmt.Print(ui.Table([]string{"#", "PROTOCOL", "ADDRESS", "TAG"}, rows))
+			return nil
 		},
 	}
 	cmd.Flags().StringVar(&subName, "sub", "", "subscription name (default: active)")
