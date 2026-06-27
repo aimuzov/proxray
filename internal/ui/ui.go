@@ -26,6 +26,11 @@ const (
 	colorWarn    = lipgloss.Color("214") // amber
 	colorError   = lipgloss.Color("196") // red
 	colorMuted   = lipgloss.Color("245") // gray
+
+	// Endpoint badges.
+	colorBadgeText  = lipgloss.Color("231") // near-white, for badge labels
+	colorBadgeSocks = lipgloss.Color("63")  // indigo
+	colorBadgeHTTP  = lipgloss.Color("36")  // teal
 )
 
 // SetOutput redirects ui output and rebuilds the renderer for w. Tests pass a
@@ -66,13 +71,16 @@ func Server(idx int, s link.Server) {
 	fmt.Fprintf(out, "Server #%d: %s %s %s:%d\n", idx+1, tag, proto, s.Address, s.Port)
 }
 
-// Endpoints prints the local proxy listener block.
+// Endpoints prints the local proxy listeners as two compact lines with colored
+// badges (fixed-width so the addresses line up):
+//
+//	SOCKS5   127.0.0.1:10808
+//	HTTP     127.0.0.1:10809
 func Endpoints(socksPort, httpPort int) {
-	fmt.Fprint(out, Table(
-		[]string{"PROXY", "ADDRESS"},
-		[][]string{
-			{"SOCKS5", fmt.Sprintf("127.0.0.1:%d", socksPort)},
-			{"HTTP", fmt.Sprintf("127.0.0.1:%d", httpPort)},
-		},
-	))
+	badge := rnd.NewStyle().Foreground(colorBadgeText).Bold(true).Width(8).Padding(0, 1)
+	addr := func(p int) string {
+		return rnd.NewStyle().Bold(true).Render(fmt.Sprintf("127.0.0.1:%d", p))
+	}
+	fmt.Fprintf(out, "  %s  %s\n", badge.Background(colorBadgeSocks).Render("SOCKS5"), addr(socksPort))
+	fmt.Fprintf(out, "  %s  %s\n", badge.Background(colorBadgeHTTP).Render("HTTP"), addr(httpPort))
 }
