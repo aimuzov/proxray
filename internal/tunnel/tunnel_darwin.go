@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/xjasonlyu/tun2socks/v2/engine"
+
+	"github.com/aimuzov/happ-cli/internal/log"
 )
 
 // Tunnel is a running TUN tunnel and the routing changes it installed.
@@ -103,7 +105,7 @@ func Start(opts Options) (*Tunnel, error) {
 	// via its more-specific route. Best-effort: warn but don't abort on failure.
 	for _, cidr := range []string{"::/1", "8000::/1"} {
 		if err := run("route", "add", "-inet6", "-net", cidr, "-interface", "lo0"); err != nil {
-			fmt.Printf("warning: could not block IPv6 %s (possible IPv6 leak): %v\n", cidr, err)
+			log.Warn("could not block IPv6 (possible IPv6 leak)", "cidr", cidr, "err", err)
 			continue
 		}
 		cidr := cidr
