@@ -61,6 +61,15 @@ func completeSubFlag(cmd *cobra.Command, args []string, toComplete string) ([]co
 	return subNames(st), cobra.ShellCompDirectiveNoFileComp
 }
 
+// completeBypassValue completes the route-bypass argument with the two valid
+// values and their descriptions.
+func completeBypassValue(*cobra.Command, []string, string) ([]cobra.Completion, cobra.ShellCompDirective) {
+	return []cobra.Completion{
+		cobra.CompletionWithDesc("ru", "route Russian traffic direct (default)"),
+		cobra.CompletionWithDesc("off", "route all traffic through the tunnel"),
+	}, cobra.ShellCompDirectiveNoFileComp
+}
+
 // completeServerSelector completes the connect selector with server tags of the
 // chosen subscription (--sub, or the active one).
 func completeServerSelector(cmd *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {

@@ -81,10 +81,3 @@ func newRouteCmd() *cobra.Command {
 	cmd.AddCommand(set, update)
 	return cmd
 }
-
-func completeBypassValue(*cobra.Command, []string, string) ([]cobra.Completion, cobra.ShellCompDirective) {
-	return []cobra.Completion{
-		cobra.CompletionWithDesc("ru", "route Russian traffic direct (default)"),
-		cobra.CompletionWithDesc("off", "route all traffic through the tunnel"),
-	}, cobra.ShellCompDirectiveNoFileComp
-}
