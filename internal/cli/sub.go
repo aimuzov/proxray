@@ -3,14 +3,13 @@ package cli
 import (
 	"context"
 	"fmt"
-	"os"
-	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/aimuzov/happ-cli/internal/profile"
 	"github.com/aimuzov/happ-cli/internal/store"
+	"github.com/aimuzov/happ-cli/internal/ui"
 )
 
 func newSubCmd() *cobra.Command {
@@ -41,9 +40,9 @@ func subAddCmd() *cobra.Command {
 			if err := st.Upsert(entry); err != nil {
 				return err
 			}
-			fmt.Printf("Added subscription %q (%d servers).\n", entry.Name, len(entry.Links))
+			ui.Success("Added subscription %q (%d servers).", entry.Name, len(entry.Links))
 			if st.Active() == entry.Name {
-				fmt.Printf("It is now the active subscription.\n")
+				ui.Info("It is now the active subscription.")
 			}
 			return nil
 		},
@@ -80,7 +79,7 @@ func subUpdateCmd() *cobra.Command {
 			if err := st.Upsert(entry); err != nil {
 				return err
 			}
-			fmt.Printf("Updated %q (%d servers).\n", entry.Name, len(entry.Links))
+			ui.Success("Updated %q (%d servers).", entry.Name, len(entry.Links))
 			return nil
 		},
 	}
@@ -100,11 +99,10 @@ func subListCmd() *cobra.Command {
 			}
 			subs := st.Subscriptions()
 			if len(subs) == 0 {
-				fmt.Println("No subscriptions. Add one with 'happ sub add <url>'.")
+				ui.Info("No subscriptions. Add one with 'happ sub add <url>'.")
 				return nil
 			}
-			tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-			fmt.Fprintln(tw, "ACTIVE\tNAME\tTITLE\tSERVERS\tTRAFFIC\tEXPIRES")
+			rows := make([][]string, 0, len(subs))
 			for _, s := range subs {
 				active := ""
 				if s.Name == st.Active() {
@@ -114,9 +112,17 @@ func subListCmd() *cobra.Command {
 				if s.UserInfo != nil {
 					expires = expiryString(s.UserInfo.Expire)
 				}
-				fmt.Fprintf(tw, "%s\t%s\t%s\t%d\t%s\t%s\n", active, s.Name, s.Title, len(s.Links), formatTraffic(s.UserInfo), expires)
+				rows = append(rows, []string{
+					active, s.Name, s.Title,
+					fmt.Sprintf("%d", len(s.Links)),
+					formatTraffic(s.UserInfo), expires,
+				})
 			}
-			return tw.Flush()
+			fmt.Print(ui.Table(
+				[]string{"ACTIVE", "NAME", "TITLE", "SERVERS", "TRAFFIC", "EXPIRES"},
+				rows,
+			))
+			return nil
 		},
 	}
 	return cmd
@@ -137,7 +143,7 @@ func subRemoveCmd() *cobra.Command {
 			if err := st.Remove(args[0]); err != nil {
 				return err
 			}
-			fmt.Printf("Removed %q.\n", args[0])
+			ui.Success("Removed %q.", args[0])
 			return nil
 		},
 	}
@@ -158,7 +164,7 @@ func subUseCmd() *cobra.Command {
 			if err := st.SetActive(args[0]); err != nil {
 				return err
 			}
-			fmt.Printf("Active subscription is now %q.\n", args[0])
+			ui.Success("Active subscription is now %q.", args[0])
 			return nil
 		},
 	}
