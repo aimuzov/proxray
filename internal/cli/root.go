@@ -44,6 +44,7 @@ func newRootCmd(version string) *cobra.Command {
 		newConnectCmd(),
 		newConfigCmd(),
 		newSysProxyCmd(),
+		newRouteCmd(),
 	)
 	return root
 }
