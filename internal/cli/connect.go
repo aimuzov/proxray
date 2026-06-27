@@ -60,11 +60,15 @@ func newConnectCmd() *cobra.Command {
 					return err
 				}
 			}
+
+			fmt.Printf("Server #%d: %s [%s] %s:%d\n", idx+1, srv.Tag, srv.Protocol, srv.Address, srv.Port)
+
+			// prepareGeo may download the geo databases (first run / daily
+			// refresh); print the server line first so a slow download isn't
+			// silent.
 			if err := prepareGeo(bypass); err != nil {
 				return err
 			}
-
-			fmt.Printf("Server #%d: %s [%s] %s:%d\n", idx+1, srv.Tag, srv.Protocol, srv.Address, srv.Port)
 
 			switch mode {
 			case "proxy":
