@@ -22,6 +22,7 @@ type SubEntry struct {
 	UserInfo       *profile.UserInfo `json:"userInfo,omitempty"`
 	UpdatedAt      string            `json:"updatedAt,omitempty"`
 	Links          []string          `json:"links,omitempty"`
+	Bypass         string            `json:"bypass,omitempty"`
 }
 
 // Servers re-parses the cached share links into Server values, skipping any

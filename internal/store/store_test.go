@@ -84,3 +84,26 @@ func TestRemove(t *testing.T) {
 		t.Errorf("Active = %q, want b after removing active", st.Active())
 	}
 }
+
+func TestSubEntryBypassRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	st, err := Open(dir)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	if err := st.Upsert(SubEntry{Name: "work", URL: "https://x", Bypass: "off"}); err != nil {
+		t.Fatalf("Upsert: %v", err)
+	}
+
+	reopened, err := Open(dir)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	sub, ok := reopened.Find("work")
+	if !ok {
+		t.Fatal("subscription not found after reopen")
+	}
+	if sub.Bypass != "off" {
+		t.Errorf("Bypass = %q, want off", sub.Bypass)
+	}
+}
