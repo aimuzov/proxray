@@ -13,6 +13,10 @@ import (
 
 var homeDir string
 
+// verbose mirrors the persistent -v/--verbose flag so any command (e.g. connect)
+// can read it after PersistentPreRunE runs.
+var verbose bool
+
 // Execute runs the root command with the given context (cancelled on SIGINT).
 // version is reported by `happ --version` / `happ version`.
 func Execute(ctx context.Context, version string) error {
@@ -21,7 +25,6 @@ func Execute(ctx context.Context, version string) error {
 
 func newRootCmd(version string) *cobra.Command {
 	var interactive bool
-	var verbose bool
 	root := &cobra.Command{
 		Use:   "happ",
 		Short: "HAPP-compatible terminal VPN client",

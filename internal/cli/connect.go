@@ -12,7 +12,17 @@ import (
 	"github.com/aimuzov/happ-cli/internal/tunnel"
 	"github.com/aimuzov/happ-cli/internal/ui"
 	"github.com/aimuzov/happ-cli/internal/xray"
+	"github.com/aimuzov/happ-cli/internal/xraylog"
 )
+
+// xrayLogLevel maps the -v flag to an xray-core loglevel: verbose surfaces
+// info-level engine messages, otherwise only warnings and errors.
+func xrayLogLevel(verbose bool) string {
+	if verbose {
+		return "info"
+	}
+	return "warning"
+}
 
 func newConnectCmd() *cobra.Command {
 	var mode, subName string
@@ -99,7 +109,7 @@ func newConnectCmd() *cobra.Command {
 }
 
 func runProxy(ctx context.Context, srv *link.Server, socksPort, httpPort int, systemProxy bool, bypass string) error {
-	cfg, err := xray.BuildConfig(srv, xray.Options{SocksPort: socksPort, HTTPPort: httpPort, Bypass: bypass})
+	cfg, err := xray.BuildConfig(srv, xray.Options{SocksPort: socksPort, HTTPPort: httpPort, Bypass: bypass, LogLevel: xrayLogLevel(verbose)})
 	if err != nil {
 		return err
 	}
@@ -112,6 +122,7 @@ func runProxy(ctx context.Context, srv *link.Server, socksPort, httpPort int, sy
 		return err
 	}
 	defer inst.Close()
+	xraylog.Install(verbose)
 
 	ui.Success("Proxy is up:")
 	ui.Endpoints(socksPort, httpPort)
@@ -159,7 +170,7 @@ func runTun(ctx context.Context, srv *link.Server, socksPort int, bypass string)
 		bypass = "off"
 	}
 
-	cfg, err := xray.BuildConfig(&pinned, xray.Options{SocksPort: socksPort, Bypass: bypass})
+	cfg, err := xray.BuildConfig(&pinned, xray.Options{SocksPort: socksPort, Bypass: bypass, LogLevel: xrayLogLevel(verbose)})
 	if err != nil {
 		return err
 	}
@@ -172,6 +183,7 @@ func runTun(ctx context.Context, srv *link.Server, socksPort int, bypass string)
 		return err
 	}
 	defer inst.Close()
+	xraylog.Install(verbose)
 
 	tun, err := tunnel.Start(tunnel.Options{
 		SocksAddr: fmt.Sprintf("127.0.0.1:%d", socksPort),
