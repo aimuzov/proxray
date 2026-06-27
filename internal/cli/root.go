@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/aimuzov/happ-cli/internal/log"
 	"github.com/aimuzov/happ-cli/internal/store"
 )
 
@@ -20,6 +21,7 @@ func Execute(ctx context.Context, version string) error {
 
 func newRootCmd(version string) *cobra.Command {
 	var interactive bool
+	var verbose bool
 	root := &cobra.Command{
 		Use:   "happ",
 		Short: "HAPP-compatible terminal VPN client",
@@ -35,9 +37,14 @@ func newRootCmd(version string) *cobra.Command {
 			}
 			return cmd.Help()
 		},
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			log.SetVerbose(verbose)
+			return nil
+		},
 	}
 	root.Flags().BoolVarP(&interactive, "interactive", "i", false, "interactively pick server and method, elevating via sudo as needed")
 	root.PersistentFlags().StringVar(&homeDir, "home", "", "config directory (default: per-user config dir + /happ-cli)")
+	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable verbose (debug) logging")
 	root.AddCommand(
 		newSubCmd(),
 		newListCmd(),
