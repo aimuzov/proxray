@@ -137,11 +137,19 @@ func interactiveFlow(ctx context.Context) error {
 		return reexecWithSudo(self, dir, sub.Name, idx, m)
 	}
 
+	bypass, err := normalizeBypass(sub.Bypass)
+	if err != nil {
+		return err
+	}
+	if err := prepareGeo(bypass); err != nil {
+		return err
+	}
+
 	fmt.Printf("Server #%d: %s [%s] %s:%d\n", idx+1, srv.Tag, srv.Protocol, srv.Address, srv.Port)
 	if m.Mode == "tun" {
-		return runTun(ctx, srv, defaultSocksPort)
+		return runTun(ctx, srv, defaultSocksPort, bypass)
 	}
-	return runProxy(ctx, srv, defaultSocksPort, defaultHTTPPort, m.SystemProxy)
+	return runProxy(ctx, srv, defaultSocksPort, defaultHTTPPort, m.SystemProxy, bypass)
 }
 
 // reexecWithSudo replaces the current process with `sudo happ connect ...`.

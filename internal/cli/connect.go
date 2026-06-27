@@ -15,6 +15,7 @@ import (
 
 func newConnectCmd() *cobra.Command {
 	var mode, subName string
+	var bypassFlag string
 	var socksPort, httpPort int
 	var systemProxy bool
 	cmd := &cobra.Command{
@@ -50,13 +51,26 @@ func newConnectCmd() *cobra.Command {
 				return fmt.Errorf("server #%d uses %q, which xray-core cannot dial; pick another server", idx+1, srv.Protocol)
 			}
 
+			bypass, err := normalizeBypass(sub.Bypass)
+			if err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("bypass") {
+				if bypass, err = normalizeBypass(bypassFlag); err != nil {
+					return err
+				}
+			}
+			if err := prepareGeo(bypass); err != nil {
+				return err
+			}
+
 			fmt.Printf("Server #%d: %s [%s] %s:%d\n", idx+1, srv.Tag, srv.Protocol, srv.Address, srv.Port)
 
 			switch mode {
 			case "proxy":
-				return runProxy(cmd.Context(), srv, socksPort, httpPort, systemProxy)
+				return runProxy(cmd.Context(), srv, socksPort, httpPort, systemProxy, bypass)
 			case "tun":
-				return runTun(cmd.Context(), srv, socksPort)
+				return runTun(cmd.Context(), srv, socksPort, bypass)
 			default:
 				return fmt.Errorf("unknown mode %q (use 'proxy' or 'tun')", mode)
 			}
@@ -67,6 +81,13 @@ func newConnectCmd() *cobra.Command {
 	cmd.Flags().IntVar(&httpPort, "http", defaultHTTPPort, "local HTTP proxy port (proxy mode)")
 	cmd.Flags().StringVar(&subName, "sub", "", "subscription name (default: active)")
 	cmd.Flags().BoolVar(&systemProxy, "system-proxy", false, "set the macOS system SOCKS proxy (requires sudo, proxy mode)")
+	cmd.Flags().StringVar(&bypassFlag, "bypass", "", "route a region's traffic direct, outside the tunnel: 'ru' or 'off' (default: subscription setting, or 'ru')")
+	_ = cmd.RegisterFlagCompletionFunc("bypass", func(*cobra.Command, []string, string) ([]cobra.Completion, cobra.ShellCompDirective) {
+		return []cobra.Completion{
+			cobra.CompletionWithDesc("ru", "route Russian traffic direct (default)"),
+			cobra.CompletionWithDesc("off", "route all traffic through the tunnel"),
+		}, cobra.ShellCompDirectiveNoFileComp
+	})
 	_ = cmd.RegisterFlagCompletionFunc("sub", completeSubFlag)
 	_ = cmd.RegisterFlagCompletionFunc("mode", func(*cobra.Command, []string, string) ([]cobra.Completion, cobra.ShellCompDirective) {
 		return []cobra.Completion{
@@ -77,8 +98,8 @@ func newConnectCmd() *cobra.Command {
 	return cmd
 }
 
-func runProxy(ctx context.Context, srv *link.Server, socksPort, httpPort int, systemProxy bool) error {
-	cfg, err := xray.BuildConfig(srv, xray.Options{SocksPort: socksPort, HTTPPort: httpPort})
+func runProxy(ctx context.Context, srv *link.Server, socksPort, httpPort int, systemProxy bool, bypass string) error {
+	cfg, err := xray.BuildConfig(srv, xray.Options{SocksPort: socksPort, HTTPPort: httpPort, Bypass: bypass})
 	if err != nil {
 		return err
 	}
@@ -113,7 +134,7 @@ func runProxy(ctx context.Context, srv *link.Server, socksPort, httpPort int, sy
 	return nil
 }
 
-func runTun(ctx context.Context, srv *link.Server, socksPort int) error {
+func runTun(ctx context.Context, srv *link.Server, socksPort int, bypass string) error {
 	ips, err := resolveIPv4(srv.Address)
 	if err != nil {
 		return fmt.Errorf("resolve server address %q: %w", srv.Address, err)
@@ -127,7 +148,7 @@ func runTun(ctx context.Context, srv *link.Server, socksPort int) error {
 	}
 	pinned.Address = ips[0]
 
-	cfg, err := xray.BuildConfig(&pinned, xray.Options{SocksPort: socksPort})
+	cfg, err := xray.BuildConfig(&pinned, xray.Options{SocksPort: socksPort, Bypass: bypass})
 	if err != nil {
 		return err
 	}
