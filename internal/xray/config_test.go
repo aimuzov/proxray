@@ -197,6 +197,28 @@ func TestBuildConfigBypassRU(t *testing.T) {
 	}
 }
 
+func TestBuildConfigDirectInterface(t *testing.T) {
+	s := &link.Server{Protocol: "vless", Address: "h", Port: 443, UUID: "u", Network: "tcp", Security: "none"}
+	m := buildMap(t, s, Options{SocksPort: 10808, Bypass: "ru", DirectInterface: "en0"})
+
+	if v := get(t, m, "outbounds.1.tag"); v != "direct" {
+		t.Fatalf("outbounds.1 tag = %v, want direct", v)
+	}
+	if v := get(t, m, "outbounds.1.streamSettings.sockopt.interface"); v != "en0" {
+		t.Errorf("direct sockopt interface = %v, want en0", v)
+	}
+}
+
+func TestBuildConfigNoDirectInterface(t *testing.T) {
+	s := &link.Server{Protocol: "vless", Address: "h", Port: 443, UUID: "u", Network: "tcp", Security: "none"}
+	m := buildMap(t, s, Options{SocksPort: 10808, Bypass: "ru"})
+
+	direct := get(t, m, "outbounds.1").(map[string]any)
+	if _, ok := direct["streamSettings"]; ok {
+		t.Errorf("direct outbound has streamSettings without DirectInterface, want none")
+	}
+}
+
 func TestBuildConfigBypassOff(t *testing.T) {
 	s := &link.Server{Protocol: "vless", Address: "h", Port: 443, UUID: "u", Network: "tcp", Security: "none"}
 	m := buildMap(t, s, Options{SocksPort: 10808, Bypass: "off"})

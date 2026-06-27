@@ -42,6 +42,21 @@ func nextHop(dest string) (gateway, iface string, err error) {
 	return gateway, iface, nil
 }
 
+// InterfaceTo reports the network interface the system currently uses to reach
+// dest. Call it before the tunnel rewrites the routing table; it is used to bind
+// the direct outbound to the physical interface so bypassed traffic skips the
+// tun device instead of looping back into it.
+func InterfaceTo(dest string) (string, error) {
+	_, iface, err := nextHop(dest)
+	if err != nil {
+		return "", err
+	}
+	if iface == "" {
+		return "", fmt.Errorf("no interface in route to %s", dest)
+	}
+	return iface, nil
+}
+
 // run executes a command, wrapping failures with the command line for context.
 func run(name string, args ...string) error {
 	cmd := exec.Command(name, args...)

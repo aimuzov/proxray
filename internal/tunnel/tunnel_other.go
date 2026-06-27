@@ -17,3 +17,8 @@ func Start(opts Options) (*Tunnel, error) {
 
 // Close is a no-op.
 func (t *Tunnel) Close() error { return nil }
+
+// InterfaceTo is unavailable where TUN mode is not implemented.
+func InterfaceTo(dest string) (string, error) {
+	return "", fmt.Errorf("interface lookup is not implemented on %s yet", runtime.GOOS)
+}

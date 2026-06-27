@@ -186,7 +186,9 @@ By default happ routes Russian domains and IP ranges (`geosite:category-ru`,
 `geosite.dat` databases from
 [Loyalsoldier/v2ray-rules-dat](https://github.com/Loyalsoldier/v2ray-rules-dat)
 into `<config>/geo/` and refreshes them once a day. Bypass applies in both proxy
-and tun modes.
+and tun modes. In tun mode the direct outbound is bound to the physical network
+interface, so bypassed traffic leaves through it instead of looping back into the
+tunnel.
 
 ```sh
 happ connect --bypass off    # route everything through the tunnel (one run)

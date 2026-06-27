@@ -17,6 +17,8 @@ type Options struct {
 	SocksPort int    // SOCKS inbound port; 0 disables
 	HTTPPort  int    // HTTP inbound port; 0 disables
 	Bypass    string // "ru" routes RU traffic direct; "off"/"" adds no routing
+
+	DirectInterface string // bind the direct outbound to this network interface (tun mode); empty = no binding
 }
 
 // Config is the root xray configuration object.
@@ -88,6 +90,11 @@ type StreamSettings struct {
 	GRPCSettings    *GRPCSettings    `json:"grpcSettings,omitempty"`
 	HTTPSettings    *HTTPSettings    `json:"httpSettings,omitempty"`
 	TCPSettings     *TCPSettings     `json:"tcpSettings,omitempty"`
+	Sockopt         *Sockopt         `json:"sockopt,omitempty"`
+}
+
+type Sockopt struct {
+	Interface string `json:"interface,omitempty"`
 }
 
 type TLSSettings struct {
@@ -144,12 +151,17 @@ func BuildConfig(s *link.Server, opts Options) (*Config, error) {
 		loglevel = "warning"
 	}
 
+	direct := Outbound{Tag: "direct", Protocol: "freedom"}
+	if opts.DirectInterface != "" {
+		direct.StreamSettings = &StreamSettings{Sockopt: &Sockopt{Interface: opts.DirectInterface}}
+	}
+
 	cfg := &Config{
 		Log:      &LogConfig{Loglevel: loglevel},
 		Inbounds: inbounds,
 		Outbounds: []Outbound{
 			*out,
-			{Tag: "direct", Protocol: "freedom"},
+			direct,
 			{Tag: "block", Protocol: "blackhole"},
 		},
 	}

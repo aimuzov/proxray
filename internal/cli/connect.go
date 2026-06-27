@@ -147,7 +147,19 @@ func runTun(ctx context.Context, srv *link.Server, socksPort int, bypass string)
 	}
 	pinned.Address = ips[0]
 
-	cfg, err := xray.BuildConfig(&pinned, xray.Options{SocksPort: socksPort, Bypass: bypass})
+	// In tun mode the routing table sends everything into the tunnel, so the
+	// direct (bypass) outbound must be bound to the physical interface or its
+	// sockets loop back through utun. Resolve the interface before the tunnel
+	// rewrites routes.
+	var directIface string
+	if bypass != "off" {
+		directIface, err = tunnel.InterfaceTo(ips[0])
+		if err != nil {
+			return fmt.Errorf("determine physical interface for bypass: %w", err)
+		}
+	}
+
+	cfg, err := xray.BuildConfig(&pinned, xray.Options{SocksPort: socksPort, Bypass: bypass, DirectInterface: directIface})
 	if err != nil {
 		return err
 	}
