@@ -43,10 +43,10 @@ func nextHop(dest string) (gateway, iface string, err error) {
 }
 
 // InterfaceTo reports the network interface the system currently uses to reach
-// dest. Call it before the tunnel rewrites the routing table; it is used to bind
-// the direct outbound to that interface — the same path the tunnel pins the
-// server connection to — so bypassed traffic skips the tun device instead of
-// looping back into it.
+// dest, queried before the tunnel rewrites the routing table. Reserved for a
+// future tun-mode RU bypass: binding the direct outbound to this interface via
+// IP_BOUND_IF was not enough on its own to keep bypassed sockets from looping
+// back through utun, so tun mode currently forces bypass off. Not called yet.
 func InterfaceTo(dest string) (string, error) {
 	_, iface, err := nextHop(dest)
 	if err != nil {

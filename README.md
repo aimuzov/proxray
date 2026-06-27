@@ -185,10 +185,10 @@ By default happ routes Russian domains and IP ranges (`geosite:category-ru`,
 (e.g. `ozon.ru`) keep working. The first connect downloads the `geoip.dat` and
 `geosite.dat` databases from
 [Loyalsoldier/v2ray-rules-dat](https://github.com/Loyalsoldier/v2ray-rules-dat)
-into `<config>/geo/` and refreshes them once a day. Bypass applies in both proxy
-and tun modes. In tun mode the direct outbound is bound to the interface used to
-reach the server (the same path the tunnel pins the server connection to), so
-bypassed traffic leaves through it instead of looping back into the tunnel.
+into `<config>/geo/` and refreshes them once a day. Bypass is effective in proxy
+and `--system-proxy` modes. In tun mode it is **not supported yet** (the direct
+outbound's sockets still loop back through utun), so `connect --mode tun` forces
+bypass off with a warning and routes everything through the tunnel.
 
 ```sh
 happ connect --bypass off    # route everything through the tunnel (one run)

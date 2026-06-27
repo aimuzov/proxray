@@ -147,20 +147,17 @@ func runTun(ctx context.Context, srv *link.Server, socksPort int, bypass string)
 	}
 	pinned.Address = ips[0]
 
-	// In tun mode the routing table sends everything into the tunnel, so the
-	// direct (bypass) outbound must be bound to the interface used to reach the
-	// server (the same path the tunnel pins the server connection to) or its
-	// sockets loop back through utun. Resolve it before the tunnel rewrites
-	// routes.
-	var directIface string
+	// RU bypass is not effective in tun mode yet: even with the direct outbound
+	// bound to the server-route interface (IP_BOUND_IF), its sockets still loop
+	// back through utun. Until that is solved, force bypass off in tun mode so RU
+	// sites keep working through the tunnel instead of hanging. Bypass remains
+	// effective in proxy / --system-proxy modes.
 	if bypass != "off" {
-		directIface, err = tunnel.InterfaceTo(ips[0])
-		if err != nil {
-			return fmt.Errorf("determine physical interface for bypass: %w", err)
-		}
+		fmt.Println("warning: --bypass is not supported in tun mode yet; routing all traffic through the tunnel")
+		bypass = "off"
 	}
 
-	cfg, err := xray.BuildConfig(&pinned, xray.Options{SocksPort: socksPort, Bypass: bypass, DirectInterface: directIface})
+	cfg, err := xray.BuildConfig(&pinned, xray.Options{SocksPort: socksPort, Bypass: bypass})
 	if err != nil {
 		return err
 	}
