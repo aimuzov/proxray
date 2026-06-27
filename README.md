@@ -161,6 +161,7 @@ In plain proxy mode, point apps at `socks5://127.0.0.1:10808` (Firefox: enable
 | `--http`         | `10809` | local HTTP proxy port (proxy mode)                  |
 | `--system-proxy` | `false` | set the macOS system proxy (proxy mode, needs sudo) |
 | `--sub`          | active  | subscription name                                   |
+| `--bypass`       | `ru`    | route a region's traffic direct: `ru` or `off`      |
 
 ### Three ways to route traffic, compared
 
@@ -176,6 +177,32 @@ In plain proxy mode, point apps at `socks5://127.0.0.1:10808` (Firefox: enable
 - **`connect --mode tun`** — a full system VPN via a utun device; captures all
   traffic. Needs `sudo`. If another VPN is active at the same time, disconnect it
   first so the tunnels don't fight over routes/DNS.
+
+### Bypassing Russian traffic
+
+By default happ routes Russian domains and IP ranges (`geosite:category-ru`,
+`geoip:ru`) straight out, outside the tunnel, so sites that block foreign VPNs
+(e.g. `ozon.ru`) keep working. The first connect downloads the `geoip.dat` and
+`geosite.dat` databases from
+[Loyalsoldier/v2ray-rules-dat](https://github.com/Loyalsoldier/v2ray-rules-dat)
+into `<config>/geo/` and refreshes them once a day. Bypass applies in both proxy
+and tun modes.
+
+```sh
+happ connect --bypass off    # route everything through the tunnel (one run)
+happ connect --bypass ru     # force RU bypass (one run)
+
+happ route                   # show the active subscription's bypass setting
+happ route set off           # persist: send all traffic through the tunnel
+happ route set ru            # persist: bypass Russian traffic (default)
+happ route update            # force-refresh the geo databases
+```
+
+The `--bypass` flag overrides the stored setting for a single run; `route set`
+changes the stored default per subscription. If the databases can't be
+downloaded while bypass is enabled, connect fails with an explanatory error
+rather than silently sending RU traffic through the tunnel — retry with a
+network connection or use `--bypass off`.
 
 ### Other commands
 
