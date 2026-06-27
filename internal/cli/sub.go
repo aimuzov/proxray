@@ -76,6 +76,7 @@ func subUpdateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			entry.Bypass = sub.Bypass // preserve the per-subscription bypass setting across updates
 			if err := st.Upsert(entry); err != nil {
 				return err
 			}

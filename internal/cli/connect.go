@@ -86,12 +86,7 @@ func newConnectCmd() *cobra.Command {
 	cmd.Flags().StringVar(&subName, "sub", "", "subscription name (default: active)")
 	cmd.Flags().BoolVar(&systemProxy, "system-proxy", false, "set the macOS system SOCKS proxy (requires sudo, proxy mode)")
 	cmd.Flags().StringVar(&bypassFlag, "bypass", "", "route a region's traffic direct, outside the tunnel: 'ru' or 'off' (default: subscription setting, or 'ru')")
-	_ = cmd.RegisterFlagCompletionFunc("bypass", func(*cobra.Command, []string, string) ([]cobra.Completion, cobra.ShellCompDirective) {
-		return []cobra.Completion{
-			cobra.CompletionWithDesc("ru", "route Russian traffic direct (default)"),
-			cobra.CompletionWithDesc("off", "route all traffic through the tunnel"),
-		}, cobra.ShellCompDirectiveNoFileComp
-	})
+	_ = cmd.RegisterFlagCompletionFunc("bypass", completeBypassValue)
 	_ = cmd.RegisterFlagCompletionFunc("sub", completeSubFlag)
 	_ = cmd.RegisterFlagCompletionFunc("mode", func(*cobra.Command, []string, string) ([]cobra.Completion, cobra.ShellCompDirective) {
 		return []cobra.Completion{
