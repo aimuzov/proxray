@@ -18,6 +18,10 @@ var ReleaseBaseURL = "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/l
 // assets are the database files required for geoip:/geosite: rules.
 var assets = []string{"geoip.dat", "geosite.dat"}
 
+// client downloads assets with a bounded timeout so a hung connection at
+// connect time cannot block forever.
+var client = &http.Client{Timeout: 30 * time.Second}
+
 // EnsureAssets makes sure every asset exists in dir and is newer than maxAge,
 // downloading any that are missing or stale. Existing fresh files are left
 // untouched.
@@ -58,7 +62,7 @@ func download(name, dest string) error {
 		return fmt.Errorf("geo: mkdir: %w", err)
 	}
 	url := ReleaseBaseURL + "/" + name
-	resp, err := http.Get(url)
+	resp, err := client.Get(url)
 	if err != nil {
 		return fmt.Errorf("geo: download %s: %w", name, err)
 	}

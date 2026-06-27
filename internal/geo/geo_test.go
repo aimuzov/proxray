@@ -12,8 +12,8 @@ import (
 func fakeReleases(t *testing.T) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/geoip.dat", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("IPDATA")) })
-	mux.HandleFunc("/geosite.dat", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("SITEDATA")) })
+	mux.HandleFunc("/geoip.dat", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("IPDATA")) })
+	mux.HandleFunc("/geosite.dat", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("SITEDATA")) })
 	return httptest.NewServer(mux)
 }
 
@@ -84,6 +84,22 @@ func TestEnsureAssetsRefreshesStale(t *testing.T) {
 	got, _ := os.ReadFile(p)
 	if string(got) != "IPDATA" {
 		t.Errorf("stale file not refreshed: %q", got)
+	}
+}
+
+func TestEnsureAssetsErrorsOnNon200(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "not found", http.StatusNotFound)
+	}))
+	defer ts.Close()
+	withBaseURL(t, ts.URL)
+	dir := t.TempDir()
+
+	if err := EnsureAssets(dir, time.Hour); err == nil {
+		t.Fatal("EnsureAssets: expected error on non-200, got nil")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "geoip.dat")); !os.IsNotExist(err) {
+		t.Errorf("geoip.dat should not exist after failed download, stat err = %v", err)
 	}
 }
 
