@@ -24,6 +24,7 @@ const (
 	colorSuccess = lipgloss.Color("42")  // green
 	colorInfo    = lipgloss.Color("39")  // blue
 	colorWarn    = lipgloss.Color("214") // amber
+	colorError   = lipgloss.Color("196") // red
 	colorMuted   = lipgloss.Color("245") // gray
 )
 
@@ -35,22 +36,26 @@ func SetOutput(w io.Writer) {
 	rnd.SetColorProfile(termenv.Ascii)
 }
 
+// Success prints a green ✓ status line.
 func Success(format string, a ...any) {
 	mark := rnd.NewStyle().Foreground(colorSuccess).Bold(true).Render("✓")
 	fmt.Fprintf(out, "%s %s\n", mark, fmt.Sprintf(format, a...))
 }
 
+// Info prints a neutral, informational status line.
 func Info(format string, a ...any) {
 	fmt.Fprintln(out, rnd.NewStyle().Foreground(colorInfo).Render(fmt.Sprintf(format, a...)))
 }
 
+// Warn prints an amber "warning:" status line.
 func Warn(format string, a ...any) {
 	label := rnd.NewStyle().Foreground(colorWarn).Bold(true).Render("warning:")
 	fmt.Fprintf(out, "%s %s\n", label, fmt.Sprintf(format, a...))
 }
 
+// Error prints a red "error:" status line.
 func Error(format string, a ...any) {
-	label := rnd.NewStyle().Foreground(lipgloss.Color("196")).Bold(true).Render("error:")
+	label := rnd.NewStyle().Foreground(colorError).Bold(true).Render("error:")
 	fmt.Fprintf(out, "%s %s\n", label, fmt.Sprintf(format, a...))
 }
 
