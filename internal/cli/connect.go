@@ -10,6 +10,7 @@ import (
 	"github.com/aimuzov/happ-cli/internal/link"
 	"github.com/aimuzov/happ-cli/internal/sysproxy"
 	"github.com/aimuzov/happ-cli/internal/tunnel"
+	"github.com/aimuzov/happ-cli/internal/ui"
 	"github.com/aimuzov/happ-cli/internal/xray"
 )
 
@@ -61,7 +62,7 @@ func newConnectCmd() *cobra.Command {
 				}
 			}
 
-			fmt.Printf("Server #%d: %s [%s] %s:%d\n", idx+1, srv.Tag, srv.Protocol, srv.Address, srv.Port)
+			ui.Server(idx, *srv)
 
 			// prepareGeo may download the geo databases (first run / daily
 			// refresh); print the server line first so a slow download isn't
@@ -112,7 +113,8 @@ func runProxy(ctx context.Context, srv *link.Server, socksPort, httpPort int, sy
 	}
 	defer inst.Close()
 
-	fmt.Printf("Proxy is up:\n  SOCKS5  127.0.0.1:%d\n  HTTP    127.0.0.1:%d\n", socksPort, httpPort)
+	ui.Success("Proxy is up:")
+	ui.Endpoints(socksPort, httpPort)
 
 	if systemProxy {
 		restore, err := sysproxy.Enable("127.0.0.1", socksPort, httpPort)
@@ -121,15 +123,15 @@ func runProxy(ctx context.Context, srv *link.Server, socksPort, httpPort int, sy
 		}
 		defer func() {
 			if err := restore(); err != nil {
-				fmt.Println("warning: failed to restore system proxy:", err)
+				ui.Warn("failed to restore system proxy: %v", err)
 			}
 		}()
-		fmt.Println("System SOCKS/HTTP proxy set on all network services (will be restored on exit).")
+		ui.Success("System SOCKS/HTTP proxy set on all network services (will be restored on exit).")
 	}
 
-	fmt.Println("Press Ctrl+C to disconnect.")
+	ui.Info("Press Ctrl+C to disconnect.")
 	<-ctx.Done()
-	fmt.Println("\nDisconnecting...")
+	ui.Info("\nDisconnecting...")
 	return nil
 }
 
@@ -153,7 +155,7 @@ func runTun(ctx context.Context, srv *link.Server, socksPort int, bypass string)
 	// sites keep working through the tunnel instead of hanging. Bypass remains
 	// effective in proxy / --system-proxy modes.
 	if bypass != "off" {
-		fmt.Println("warning: --bypass is not supported in tun mode yet; routing all traffic through the tunnel")
+		ui.Warn("--bypass is not supported in tun mode yet; routing all traffic through the tunnel")
 		bypass = "off"
 	}
 
@@ -180,10 +182,10 @@ func runTun(ctx context.Context, srv *link.Server, socksPort int, bypass string)
 	}
 	defer tun.Close()
 
-	fmt.Printf("TUN tunnel is up; all traffic is routed through %s.\n", srv.Tag)
-	fmt.Println("Press Ctrl+C to disconnect and restore routing.")
+	ui.Success("TUN tunnel is up; all traffic is routed through %s.", srv.Tag)
+	ui.Info("Press Ctrl+C to disconnect and restore routing.")
 	<-ctx.Done()
-	fmt.Println("\nDisconnecting and restoring routes...")
+	ui.Info("\nDisconnecting and restoring routes...")
 	return nil
 }
 
