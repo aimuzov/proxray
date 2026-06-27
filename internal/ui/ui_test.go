@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aimuzov/happ-cli/internal/link"
+	"github.com/aimuzov/proxray/internal/link"
 )
 
 func TestStatusHelpersWritePlainText(t *testing.T) {

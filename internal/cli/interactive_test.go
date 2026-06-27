@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/aimuzov/happ-cli/internal/link"
+	"github.com/aimuzov/proxray/internal/link"
 )
 
 func TestBuildSudoArgs(t *testing.T) {
@@ -23,7 +23,7 @@ func TestBuildSudoArgs(t *testing.T) {
 			subName: "work",
 			idx:     1,
 			method:  method{Mode: "tun"},
-			want:    []string{"sudo", "/bin/happ", "connect", "2", "--mode", "tun", "--sub", "work", "--home", "/cfg"},
+			want:    []string{"sudo", "/bin/proxray", "connect", "2", "--mode", "tun", "--sub", "work", "--home", "/cfg"},
 		},
 		{
 			name:    "proxy with system proxy",
@@ -31,7 +31,7 @@ func TestBuildSudoArgs(t *testing.T) {
 			subName: "work",
 			idx:     0,
 			method:  method{Mode: "proxy", SystemProxy: true},
-			want:    []string{"sudo", "/bin/happ", "connect", "1", "--mode", "proxy", "--sub", "work", "--home", "/cfg", "--system-proxy"},
+			want:    []string{"sudo", "/bin/proxray", "connect", "1", "--mode", "proxy", "--sub", "work", "--home", "/cfg", "--system-proxy"},
 		},
 		{
 			name:    "no sub no home",
@@ -39,12 +39,12 @@ func TestBuildSudoArgs(t *testing.T) {
 			subName: "",
 			idx:     4,
 			method:  method{Mode: "tun"},
-			want:    []string{"sudo", "/bin/happ", "connect", "5", "--mode", "tun"},
+			want:    []string{"sudo", "/bin/proxray", "connect", "5", "--mode", "tun"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := buildSudoArgs("/bin/happ", tt.home, tt.subName, tt.idx, tt.method)
+			got := buildSudoArgs("/bin/proxray", tt.home, tt.subName, tt.idx, tt.method)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("buildSudoArgs() = %v, want %v", got, tt.want)
 			}

@@ -1,4 +1,4 @@
-// Package log is the diagnostic logger for happ. It writes leveled, colored
+// Package log is the diagnostic logger for proxray. It writes leveled, colored
 // messages to stderr. User-facing results belong in internal/ui, not here.
 package log
 

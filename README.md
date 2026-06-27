@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/banner.png" alt="happ-cli" width="800" />
+  <img src="assets/banner.png" alt="proxray" width="800" />
 </p>
 
-# happ-cli
+# proxray
 
 **English** | [Русский](README.ru.md)
 
@@ -60,22 +60,21 @@ base64 list of links ──► link.Parse ──► []link.Server
 ### mise (recommended)
 
 Prebuilt binaries are published to GitHub Releases. Install with
-[mise](https://mise.jdx.dev) — no Go toolchain required. The binary inside the
-archive is `happ` (not `happ-cli`), so pass `exe=happ`:
+[mise](https://mise.jdx.dev) — no Go toolchain required:
 
 ```sh
-mise use -g "github:aimuzov/happ-cli[exe=happ]@latest"
+mise use -g "github:aimuzov/proxray@latest"
 ```
 
 or pin it in `mise.toml`:
 
 ```toml
 [tools]
-"github:aimuzov/happ-cli" = { version = "latest", exe = "happ" }
+"github:aimuzov/proxray" = "latest"
 ```
 
 The `ubi` backend works the same way against the same releases, if you prefer it:
-`ubi:aimuzov/happ-cli[exe=happ]`.
+`ubi:aimuzov/proxray`.
 
 > For frequent installs, set `MISE_GITHUB_TOKEN` (or `GITHUB_TOKEN`) to avoid
 > GitHub API rate limits.
@@ -83,20 +82,20 @@ The `ubi` backend works the same way against the same releases, if you prefer it
 ### Manual download
 
 Download the archive for your OS/arch from the
-[Releases](https://github.com/aimuzov/happ-cli/releases) page, extract it, and
-put the `happ` binary on your `PATH`.
+[Releases](https://github.com/aimuzov/proxray/releases) page, extract it, and
+put the `proxray` binary on your `PATH`.
 
 ### From source
 
 ```sh
-git clone https://github.com/aimuzov/happ-cli
-cd happ-cli
-go build -o happ .   # requires Go 1.26+
+git clone https://github.com/aimuzov/proxray
+cd proxray
+go build -o proxray .   # requires Go 1.26+
 ```
 
-The resulting `happ` binary is self-contained.
+The resulting `proxray` binary is self-contained.
 
-> **`go install github.com/aimuzov/happ-cli@latest` does not work.** The build
+> **`go install github.com/aimuzov/proxray@latest` does not work.** The build
 > relies on a `replace` directive in `go.mod` (to reconcile xray-core and
 > tun2socks on gvisor), and `go install pkg@version` ignores `replace`. Use a
 > prebuilt binary or clone and build.
@@ -106,11 +105,11 @@ The resulting `happ` binary is self-contained.
 ### Subscriptions
 
 ```sh
-happ sub add https://panel.example/sub/TOKEN --name myvpn   # add (becomes active)
-happ sub list                                               # list subscriptions
-happ sub update [name]                                      # re-fetch (default: active)
-happ sub use <name>                                         # set the active subscription
-happ sub rm <name>                                          # remove
+proxray sub add https://panel.example/sub/TOKEN --name myvpn   # add (becomes active)
+proxray sub list                                               # list subscriptions
+proxray sub update [name]                                      # re-fetch (default: active)
+proxray sub use <name>                                         # set the active subscription
+proxray sub rm <name>                                          # remove
 ```
 
 `sub list` shows traffic and expiry from the subscription headers:
@@ -123,8 +122,8 @@ ACTIVE  NAME    TITLE       SERVERS  TRAFFIC          EXPIRES
 ### Servers
 
 ```sh
-happ list           # servers in the active subscription
-happ list --sub x   # servers in a specific subscription
+proxray list           # servers in the active subscription
+proxray list --sub x   # servers in a specific subscription
 ```
 
 ```
@@ -137,16 +136,16 @@ happ list --sub x   # servers in a specific subscription
 ### Connecting
 
 `connect` runs in the foreground until interrupted with `Ctrl+C`. The `selector`
-picks a server: empty = first, a number = 1-based index from `happ list`, or a
+picks a server: empty = first, a number = 1-based index from `proxray list`, or a
 case-insensitive substring of the server tag.
 
 ```sh
-happ connect                 # first server, proxy mode
-happ connect 2               # server #2
-happ connect germany         # first server whose tag matches "germany"
+proxray connect                 # first server, proxy mode
+proxray connect 2               # server #2
+proxray connect germany         # first server whose tag matches "germany"
 
-sudo happ connect 1 --system-proxy   # browsers/apps via system proxy (no routing changes)
-sudo happ connect 1 --mode tun       # full system-wide VPN
+sudo proxray connect 1 --system-proxy   # browsers/apps via system proxy (no routing changes)
+sudo proxray connect 1 --mode tun       # full system-wide VPN
 ```
 
 In plain proxy mode, point apps at `socks5://127.0.0.1:10808` (Firefox: enable
@@ -173,14 +172,14 @@ In plain proxy mode, point apps at `socks5://127.0.0.1:10808` (Firefox: enable
   touch the routing table, so it **coexists with another active VPN**. Needs
   `sudo`; the previous proxy settings are restored on exit. If a session was
   killed (`kill -9`) and the proxy stuck, reset it with
-  `sudo happ system-proxy off`.
+  `sudo proxray system-proxy off`.
 - **`connect --mode tun`** — a full system VPN via a utun device; captures all
   traffic. Needs `sudo`. If another VPN is active at the same time, disconnect it
   first so the tunnels don't fight over routes/DNS.
 
 ### Bypassing Russian traffic
 
-By default happ routes Russian domains and IP ranges (`geosite:category-ru`,
+By default proxray routes Russian domains and IP ranges (`geosite:category-ru`,
 `geoip:ru`) straight out, outside the tunnel, so sites that block foreign VPNs
 (e.g. `ozon.ru`) keep working. The first connect downloads the `geoip.dat` and
 `geosite.dat` databases from
@@ -191,13 +190,13 @@ outbound's sockets still loop back through utun), so `connect --mode tun` forces
 bypass off with a warning and routes everything through the tunnel.
 
 ```sh
-happ connect --bypass off    # route everything through the tunnel (one run)
-happ connect --bypass ru     # force RU bypass (one run)
+proxray connect --bypass off    # route everything through the tunnel (one run)
+proxray connect --bypass ru     # force RU bypass (one run)
 
-happ route                   # show the active subscription's bypass setting
-happ route set off           # persist: send all traffic through the tunnel
-happ route set ru            # persist: bypass Russian traffic (default)
-happ route update            # force-refresh the geo databases
+proxray route                   # show the active subscription's bypass setting
+proxray route set off           # persist: send all traffic through the tunnel
+proxray route set ru            # persist: bypass Russian traffic (default)
+proxray route update            # force-refresh the geo databases
 ```
 
 The `--bypass` flag overrides the stored setting for a single run; `route set`
@@ -209,14 +208,14 @@ network connection or use `--bypass off`.
 ### Other commands
 
 ```sh
-happ config [selector]       # print the generated xray-core config (debug)
-happ system-proxy off        # emergency reset of the system proxy (sudo)
+proxray config [selector]       # print the generated xray-core config (debug)
+proxray system-proxy off        # emergency reset of the system proxy (sudo)
 ```
 
 ## Configuration & storage
 
 State (subscriptions and cached links) is stored as `state.json` in the
-per-user config directory (`~/Library/Application Support/happ-cli` on macOS),
+per-user config directory (`~/Library/Application Support/proxray` on macOS),
 overridable with the global `--home` flag.
 
 ## TUN mode details (macOS)
@@ -242,7 +241,7 @@ overridable with the global `--home` flag.
 - **IPv6 is blocked in TUN mode** (the proxy path is IPv4); IPv6-only
   destinations become unreachable while connected.
 - `connect` runs in the **foreground**; there is no background daemon yet.
-- A `kill -9` skips cleanup: a system proxy stays set (`sudo happ system-proxy
+- A `kill -9` skips cleanup: a system proxy stays set (`sudo proxray system-proxy
 off`) and TUN IPv6-block routes remain (`sudo route -n delete -inet6 -net
 ::/1; sudo route -n delete -inet6 -net 8000::/1`). A normal `Ctrl+C` cleans up.
 
@@ -284,5 +283,5 @@ git push origin v0.1.0
 
 The `release` workflow (`.github/workflows/release.yml`) builds darwin/linux
 binaries for amd64/arm64 and uploads them to GitHub Releases. Building there
-honors the `go.mod` `replace` directive (happ-cli is the main module). Dry-run
+honors the `go.mod` `replace` directive (proxray is the main module). Dry-run
 locally with `goreleaser release --clean --snapshot`.

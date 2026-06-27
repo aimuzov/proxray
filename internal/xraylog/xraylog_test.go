@@ -7,7 +7,7 @@ import (
 
 	xlog "github.com/xtls/xray-core/common/log"
 
-	"github.com/aimuzov/happ-cli/internal/log"
+	"github.com/aimuzov/proxray/internal/log"
 )
 
 func TestAccessHiddenWithoutVerbose(t *testing.T) {

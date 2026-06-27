@@ -1,4 +1,4 @@
-// Package xraylog renders embedded xray-core runtime logs through happ's own
+// Package xraylog renders embedded xray-core runtime logs through proxray's own
 // logger (internal/log), so engine output matches the "<time> <LEVEL> message"
 // format instead of xray's raw, microsecond-stamped lines.
 package xraylog
@@ -10,7 +10,7 @@ import (
 	xlog "github.com/xtls/xray-core/common/log"
 	"github.com/xtls/xray-core/common/serial"
 
-	"github.com/aimuzov/happ-cli/internal/log"
+	"github.com/aimuzov/proxray/internal/log"
 )
 
 // Handler implements xray-core's common/log.Handler. It routes each message to

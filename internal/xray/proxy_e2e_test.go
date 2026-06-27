@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/net/proxy"
 
-	"github.com/aimuzov/happ-cli/internal/link"
+	"github.com/aimuzov/proxray/internal/link"
 )
 
 // TestProxyEndToEnd stands up a real xray Shadowsocks server, a client built

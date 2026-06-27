@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/banner.png" alt="happ-cli" width="800" />
+  <img src="assets/banner.png" alt="proxray" width="800" />
 </p>
 
-# happ-cli
+# proxray
 
 [English](README.md) | **Русский**
 
@@ -60,22 +60,21 @@ base64-список ссылок ──► link.Parse ──► []link.Server
 ### mise (рекомендуется)
 
 Готовые бинарники публикуются в GitHub Releases. Ставятся через
-[mise](https://mise.jdx.dev) — без установки Go. Внутри архива бинарник называется
-`happ` (не `happ-cli`), поэтому укажи `exe=happ`:
+[mise](https://mise.jdx.dev) — без установки Go:
 
 ```sh
-mise use -g "github:aimuzov/happ-cli[exe=happ]@latest"
+mise use -g "github:aimuzov/proxray@latest"
 ```
 
 или зафиксировать в `mise.toml`:
 
 ```toml
 [tools]
-"github:aimuzov/happ-cli" = { version = "latest", exe = "happ" }
+"github:aimuzov/proxray" = "latest"
 ```
 
 Бэкенд `ubi` работает так же и с теми же релизами, если он тебе привычнее:
-`ubi:aimuzov/happ-cli[exe=happ]`.
+`ubi:aimuzov/proxray`.
 
 > При частых установках задай `MISE_GITHUB_TOKEN` (или `GITHUB_TOKEN`), чтобы не
 > упереться в лимиты GitHub API.
@@ -83,20 +82,20 @@ mise use -g "github:aimuzov/happ-cli[exe=happ]@latest"
 ### Ручная загрузка
 
 Скачай архив под свою ОС/архитектуру со страницы
-[Releases](https://github.com/aimuzov/happ-cli/releases), распакуй и положи
-бинарник `happ` в `PATH`.
+[Releases](https://github.com/aimuzov/proxray/releases), распакуй и положи
+бинарник `proxray` в `PATH`.
 
 ### Из исходников
 
 ```sh
-git clone https://github.com/aimuzov/happ-cli
-cd happ-cli
-go build -o happ .   # нужен Go 1.26+
+git clone https://github.com/aimuzov/proxray
+cd proxray
+go build -o proxray .   # нужен Go 1.26+
 ```
 
-Полученный бинарник `happ` самодостаточен.
+Полученный бинарник `proxray` самодостаточен.
 
-> **`go install github.com/aimuzov/happ-cli@latest` не работает.** Сборке нужна
+> **`go install github.com/aimuzov/proxray@latest` не работает.** Сборке нужна
 > директива `replace` в `go.mod` (примиряет xray-core и tun2socks по gvisor), а
 > `go install pkg@version` игнорирует `replace`. Используй готовый бинарник либо
 > клонируй и собирай.
@@ -106,11 +105,11 @@ go build -o happ .   # нужен Go 1.26+
 ### Подписки
 
 ```sh
-happ sub add https://panel.example/sub/TOKEN --name myvpn   # добавить (станет активной)
-happ sub list                                               # список подписок
-happ sub update [name]                                      # обновить (по умолчанию активную)
-happ sub use <name>                                         # сделать подписку активной
-happ sub rm <name>                                          # удалить
+proxray sub add https://panel.example/sub/TOKEN --name myvpn   # добавить (станет активной)
+proxray sub list                                               # список подписок
+proxray sub update [name]                                      # обновить (по умолчанию активную)
+proxray sub use <name>                                         # сделать подписку активной
+proxray sub rm <name>                                          # удалить
 ```
 
 `sub list` показывает трафик и срок из заголовков подписки:
@@ -123,8 +122,8 @@ ACTIVE  NAME    TITLE       SERVERS  TRAFFIC          EXPIRES
 ### Серверы
 
 ```sh
-happ list           # серверы активной подписки
-happ list --sub x   # серверы конкретной подписки
+proxray list           # серверы активной подписки
+proxray list --sub x   # серверы конкретной подписки
 ```
 
 ```
@@ -137,16 +136,16 @@ happ list --sub x   # серверы конкретной подписки
 ### Подключение
 
 `connect` работает в foreground до прерывания `Ctrl+C`. Аргумент `selector`
-выбирает сервер: пусто = первый, число = индекс (1-based) из `happ list`, либо
+выбирает сервер: пусто = первый, число = индекс (1-based) из `proxray list`, либо
 подстрока тега без учёта регистра.
 
 ```sh
-happ connect                 # первый сервер, режим proxy
-happ connect 2               # сервер №2
-happ connect germany         # первый сервер с тегом, содержащим "germany"
+proxray connect                 # первый сервер, режим proxy
+proxray connect 2               # сервер №2
+proxray connect germany         # первый сервер с тегом, содержащим "germany"
 
-sudo happ connect 1 --system-proxy   # браузеры/приложения через системный прокси (без правки маршрутов)
-sudo happ connect 1 --mode tun       # полноценный системный VPN
+sudo proxray connect 1 --system-proxy   # браузеры/приложения через системный прокси (без правки маршрутов)
+sudo proxray connect 1 --mode tun       # полноценный системный VPN
 ```
 
 В обычном proxy-режиме настрой приложения на `socks5://127.0.0.1:10808`
@@ -172,14 +171,14 @@ sudo happ connect 1 --mode tun       # полноценный системный
   Safari/Chrome и приложения, игнорирующие SOCKS, идут через прокси. **Не трогает**
   таблицу маршрутов, поэтому **уживается с другим активным VPN**. Нужен `sudo`;
   прежние настройки прокси восстанавливаются при выходе. Если сессию убили
-  (`kill -9`) и прокси завис — сбросить командой `sudo happ system-proxy off`.
+  (`kill -9`) и прокси завис — сбросить командой `sudo proxray system-proxy off`.
 - **`connect --mode tun`** — полноценный системный VPN через utun, перехватывает
   весь трафик. Нужен `sudo`. Если параллельно активен другой VPN — сначала
   отключи его, чтобы туннели не дрались за маршруты/DNS.
 
 ### Обход российского трафика
 
-По умолчанию happ направляет российские домены и диапазоны IP
+По умолчанию proxray направляет российские домены и диапазоны IP
 (`geosite:category-ru`, `geoip:ru`) напрямую, мимо туннеля, чтобы сайты,
 блокирующие иностранные VPN (например `ozon.ru`), продолжали работать. При первом
 подключении базы `geoip.dat` и `geosite.dat` скачиваются из
@@ -191,13 +190,13 @@ direct-outbound всё равно зацикливаются обратно в u
 трафик через туннель.
 
 ```sh
-happ connect --bypass off    # весь трафик через туннель (на один запуск)
-happ connect --bypass ru     # принудительный обход РФ (на один запуск)
+proxray connect --bypass off    # весь трафик через туннель (на один запуск)
+proxray connect --bypass ru     # принудительный обход РФ (на один запуск)
 
-happ route                   # показать настройку обхода активной подписки
-happ route set off           # сохранить: весь трафик через туннель
-happ route set ru            # сохранить: обходить российский трафик (по умолчанию)
-happ route update            # принудительно обновить geo-базы
+proxray route                   # показать настройку обхода активной подписки
+proxray route set off           # сохранить: весь трафик через туннель
+proxray route set ru            # сохранить: обходить российский трафик (по умолчанию)
+proxray route update            # принудительно обновить geo-базы
 ```
 
 Флаг `--bypass` переопределяет сохранённую настройку на один запуск; `route set`
@@ -208,14 +207,14 @@ happ route update            # принудительно обновить geo-�
 ### Прочие команды
 
 ```sh
-happ config [selector]       # вывести сгенерированный конфиг xray-core (отладка)
-happ system-proxy off        # аварийный сброс системного прокси (sudo)
+proxray config [selector]       # вывести сгенерированный конфиг xray-core (отладка)
+proxray system-proxy off        # аварийный сброс системного прокси (sudo)
 ```
 
 ## Конфигурация и хранение
 
 Состояние (подписки и кэш ссылок) хранится в `state.json` в конфиг-каталоге
-пользователя (`~/Library/Application Support/happ-cli` на macOS),
+пользователя (`~/Library/Application Support/proxray` на macOS),
 переопределяется глобальным флагом `--home`.
 
 ## Детали режима TUN (macOS)
@@ -243,7 +242,7 @@ happ system-proxy off        # аварийный сброс системног�
   время подключения недоступны.
 - `connect` работает в **foreground**; фонового демона пока нет.
 - `kill -9` пропускает очистку: системный прокси останется включённым
-  (`sudo happ system-proxy off`), а IPv6-блок-маршруты TUN — в таблице
+  (`sudo proxray system-proxy off`), а IPv6-блок-маршруты TUN — в таблице
   (`sudo route -n delete -inet6 -net ::/1; sudo route -n delete -inet6 -net
 8000::/1`). Обычный `Ctrl+C` всё убирает сам.
 
@@ -285,5 +284,5 @@ git push origin v0.1.0
 
 Workflow `release` (`.github/workflows/release.yml`) собирает бинарники
 darwin/linux под amd64/arm64 и публикует их в GitHub Releases. Там сборка
-учитывает `replace` из `go.mod` (happ-cli — главный модуль). Локальный прогон:
+учитывает `replace` из `go.mod` (proxray — главный модуль). Локальный прогон:
 `goreleaser release --clean --snapshot`.

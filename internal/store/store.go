@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aimuzov/happ-cli/internal/link"
-	"github.com/aimuzov/happ-cli/internal/profile"
+	"github.com/aimuzov/proxray/internal/link"
+	"github.com/aimuzov/proxray/internal/profile"
 )
 
 // SubEntry is one stored subscription and its cached links.
@@ -48,13 +48,29 @@ type Store struct {
 	state state
 }
 
-// DefaultDir returns the per-user config directory for happ-cli.
+// DefaultDir returns the per-user config directory for proxray. If that
+// directory does not yet exist but a legacy "happ-cli" one does, the legacy
+// directory is migrated in place (the project was renamed from happ-cli).
 func DefaultDir() (string, error) {
 	base, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(base, "happ-cli"), nil
+	dir := filepath.Join(base, "proxray")
+	migrateLegacyDir(base, dir)
+	return dir, nil
+}
+
+// migrateLegacyDir renames the old happ-cli config directory to dir when dir
+// does not exist yet. Any error is ignored: a fresh config is created instead.
+func migrateLegacyDir(base, dir string) {
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		return
+	}
+	legacy := filepath.Join(base, "happ-cli")
+	if fi, err := os.Stat(legacy); err == nil && fi.IsDir() {
+		_ = os.Rename(legacy, dir)
+	}
 }
 
 // Open loads the store rooted at dir, creating an empty one if none exists.

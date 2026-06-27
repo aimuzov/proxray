@@ -1,7 +1,7 @@
 //go:build darwin
 
 // Package sysproxy sets and restores the macOS system proxy via networksetup,
-// so apps that honor the system proxy (browsers) route through happ without a
+// so apps that honor the system proxy (browsers) route through proxray without a
 // TUN device. Changing the system proxy requires root.
 package sysproxy
 
@@ -22,14 +22,14 @@ type proxyState struct {
 	Port    int
 }
 
-// kind is one networksetup proxy type and the port happ exposes for it. The
+// kind is one networksetup proxy type and the port proxray exposes for it. The
 // token drives all three commands: -get<token>, -set<token>, -set<token>state.
 type kind struct {
 	token string
 	port  int
 }
 
-// proxyKinds maps happ's local inbounds to the macOS proxy types: SOCKS to the
+// proxyKinds maps proxray's local inbounds to the macOS proxy types: SOCKS to the
 // SOCKS port, and both HTTP (web) and HTTPS (secure web) to the HTTP port.
 func proxyKinds(socksPort, httpPort int) []kind {
 	return []kind{
@@ -39,7 +39,7 @@ func proxyKinds(socksPort, httpPort int) []kind {
 	}
 }
 
-// allTokens lists every proxy type happ manages, for a blanket disable.
+// allTokens lists every proxy type proxray manages, for a blanket disable.
 var allTokens = []string{"socksfirewallproxy", "webproxy", "securewebproxy"}
 
 // parseServices extracts enabled network service names from the output of
@@ -121,7 +121,7 @@ func Enable(host string, socksPort, httpPort int) (Restore, error) {
 	return revert, nil
 }
 
-// DisableAll turns off every proxy type happ manages on every enabled network
+// DisableAll turns off every proxy type proxray manages on every enabled network
 // service. Used as an emergency reset when a prior session did not restore.
 func DisableAll() error {
 	if os.Geteuid() != 0 {

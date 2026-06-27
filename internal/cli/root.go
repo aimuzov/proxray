@@ -1,4 +1,4 @@
-// Package cli implements the happ command-line interface.
+// Package cli implements the proxray command-line interface.
 package cli
 
 import (
@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/aimuzov/happ-cli/internal/log"
-	"github.com/aimuzov/happ-cli/internal/store"
+	"github.com/aimuzov/proxray/internal/log"
+	"github.com/aimuzov/proxray/internal/store"
 )
 
 var homeDir string
@@ -18,7 +18,7 @@ var homeDir string
 var verbose bool
 
 // Execute runs the root command with the given context (cancelled on SIGINT).
-// version is reported by `happ --version` / `happ version`.
+// version is reported by `proxray --version` / `proxray version`.
 func Execute(ctx context.Context, version string) error {
 	return newRootCmd(version).ExecuteContext(ctx)
 }
@@ -26,9 +26,9 @@ func Execute(ctx context.Context, version string) error {
 func newRootCmd(version string) *cobra.Command {
 	var interactive bool
 	root := &cobra.Command{
-		Use:   "happ",
+		Use:   "proxray",
 		Short: "HAPP-compatible terminal VPN client",
-		Long: "happ is a terminal VPN client compatible with HAPP subscription profiles.\n" +
+		Long: "proxray is a terminal VPN client compatible with HAPP subscription profiles.\n" +
 			"It fetches a subscription, parses its share links (VLESS/VMess/Trojan/Shadowsocks),\n" +
 			"and connects through an embedded xray-core, either as a local proxy or a full TUN tunnel.",
 		Version:       version,
@@ -46,7 +46,7 @@ func newRootCmd(version string) *cobra.Command {
 		},
 	}
 	root.Flags().BoolVarP(&interactive, "interactive", "i", false, "interactively pick server and method, elevating via sudo as needed")
-	root.PersistentFlags().StringVar(&homeDir, "home", "", "config directory (default: per-user config dir + /happ-cli)")
+	root.PersistentFlags().StringVar(&homeDir, "home", "", "config directory (default: per-user config dir + /proxray)")
 	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable verbose (debug) logging")
 	root.AddCommand(
 		newSubCmd(),
@@ -81,7 +81,7 @@ func resolveSub(st *store.Store, name string) (store.SubEntry, error) {
 		name = st.Active()
 	}
 	if name == "" {
-		return store.SubEntry{}, fmt.Errorf("no subscription specified and none is active; add one with 'happ sub add <url>'")
+		return store.SubEntry{}, fmt.Errorf("no subscription specified and none is active; add one with 'proxray sub add <url>'")
 	}
 	sub, ok := st.Find(name)
 	if !ok {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aimuzov/happ-cli/internal/geo"
+	"github.com/aimuzov/proxray/internal/geo"
 )
 
 // geoMaxAge is how long cached .dat databases stay valid before connect

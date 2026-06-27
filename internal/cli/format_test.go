@@ -3,7 +3,7 @@ package cli
 import (
 	"testing"
 
-	"github.com/aimuzov/happ-cli/internal/profile"
+	"github.com/aimuzov/proxray/internal/profile"
 )
 
 func TestFormatTrafficWithTotal(t *testing.T) {

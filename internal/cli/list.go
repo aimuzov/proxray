@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/aimuzov/happ-cli/internal/ui"
-	"github.com/aimuzov/happ-cli/internal/xray"
+	"github.com/aimuzov/proxray/internal/ui"
+	"github.com/aimuzov/proxray/internal/xray"
 )
 
 func newListCmd() *cobra.Command {

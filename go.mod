@@ -1,4 +1,4 @@
-module github.com/aimuzov/happ-cli
+module github.com/aimuzov/proxray
 
 go 1.26.4
 

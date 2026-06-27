@@ -11,10 +11,10 @@ import (
 
 	"github.com/mattn/go-isatty"
 
-	"github.com/aimuzov/happ-cli/internal/link"
-	"github.com/aimuzov/happ-cli/internal/store"
-	"github.com/aimuzov/happ-cli/internal/ui"
-	"github.com/aimuzov/happ-cli/internal/xray"
+	"github.com/aimuzov/proxray/internal/link"
+	"github.com/aimuzov/proxray/internal/store"
+	"github.com/aimuzov/proxray/internal/ui"
+	"github.com/aimuzov/proxray/internal/xray"
 )
 
 // Default local proxy ports, shared with the connect command's flag defaults.
@@ -76,7 +76,7 @@ func supportedServerChoices(servers []*link.Server) []serverChoice {
 	return out
 }
 
-// buildSudoArgs builds the argv for re-executing happ under sudo as the
+// buildSudoArgs builds the argv for re-executing proxray under sudo as the
 // equivalent non-interactive connect command. argv[0] is "sudo".
 func buildSudoArgs(self, home, subName string, idx int, m method) []string {
 	args := []string{"sudo", self, "connect", strconv.Itoa(idx + 1), "--mode", m.Mode}
@@ -106,7 +106,7 @@ func runInteractive(ctx context.Context) error {
 
 func interactiveFlow(ctx context.Context) error {
 	if !isatty.IsTerminal(os.Stdin.Fd()) && !isatty.IsCygwinTerminal(os.Stdin.Fd()) {
-		return fmt.Errorf("interactive mode requires a terminal; use 'happ connect' instead")
+		return fmt.Errorf("interactive mode requires a terminal; use 'proxray connect' instead")
 	}
 
 	st, err := openStore()
@@ -129,7 +129,7 @@ func interactiveFlow(ctx context.Context) error {
 	if m.needsRoot() && os.Geteuid() != 0 {
 		self, err := os.Executable()
 		if err != nil {
-			return fmt.Errorf("locate happ binary for re-exec: %w", err)
+			return fmt.Errorf("locate proxray binary for re-exec: %w", err)
 		}
 		dir, err := storeDir()
 		if err != nil {
@@ -153,7 +153,7 @@ func interactiveFlow(ctx context.Context) error {
 	return runProxy(ctx, srv, defaultSocksPort, defaultHTTPPort, m.SystemProxy, bypass)
 }
 
-// reexecWithSudo replaces the current process with `sudo happ connect ...`.
+// reexecWithSudo replaces the current process with `sudo proxray connect ...`.
 // On success it never returns; on failure it returns the exec error.
 func reexecWithSudo(self, home, subName string, idx int, m method) error {
 	sudoPath, err := exec.LookPath("sudo")
@@ -168,7 +168,7 @@ func reexecWithSudo(self, home, subName string, idx int, m method) error {
 func pickSubscription(st *store.Store) (store.SubEntry, error) {
 	subs := st.Subscriptions()
 	if len(subs) == 0 {
-		return store.SubEntry{}, fmt.Errorf("no subscriptions; add one with 'happ sub add <url>'")
+		return store.SubEntry{}, fmt.Errorf("no subscriptions; add one with 'proxray sub add <url>'")
 	}
 	if len(subs) == 1 {
 		return subs[0], nil

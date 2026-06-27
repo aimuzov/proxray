@@ -7,12 +7,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/aimuzov/happ-cli/internal/link"
-	"github.com/aimuzov/happ-cli/internal/sysproxy"
-	"github.com/aimuzov/happ-cli/internal/tunnel"
-	"github.com/aimuzov/happ-cli/internal/ui"
-	"github.com/aimuzov/happ-cli/internal/xray"
-	"github.com/aimuzov/happ-cli/internal/xraylog"
+	"github.com/aimuzov/proxray/internal/link"
+	"github.com/aimuzov/proxray/internal/sysproxy"
+	"github.com/aimuzov/proxray/internal/tunnel"
+	"github.com/aimuzov/proxray/internal/ui"
+	"github.com/aimuzov/proxray/internal/xray"
+	"github.com/aimuzov/proxray/internal/xraylog"
 )
 
 // xrayLogLevel maps the -v flag to an xray-core loglevel: verbose surfaces

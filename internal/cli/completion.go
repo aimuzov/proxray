@@ -3,8 +3,8 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/aimuzov/happ-cli/internal/link"
-	"github.com/aimuzov/happ-cli/internal/store"
+	"github.com/aimuzov/proxray/internal/link"
+	"github.com/aimuzov/proxray/internal/store"
 )
 
 // serverTags turns servers into shell completions, using the protocol as the

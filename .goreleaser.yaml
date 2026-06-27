@@ -1,18 +1,18 @@
 # GoReleaser builds multi-platform binaries and publishes a GitHub Release.
 # Run locally with `goreleaser release --clean` (needs GITHUB_TOKEN) or let the
 # release workflow run it on a tag push. Building here honors the go.mod
-# `replace` directive (happ-cli is the main module), unlike `go install @ver`.
+# `replace` directive (proxray is the main module), unlike `go install @ver`.
 version: 2
 
-project_name: happ-cli
+project_name: proxray
 
 before:
   hooks:
     - go mod tidy
 
 builds:
-  - id: happ
-    binary: happ
+  - id: proxray
+    binary: proxray
     main: .
     env:
       - CGO_ENABLED=0
@@ -36,7 +36,7 @@ checksum:
 release:
   github:
     owner: aimuzov
-    name: happ-cli
+    name: proxray
 
 changelog:
   use: github

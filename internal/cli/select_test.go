@@ -3,7 +3,7 @@ package cli
 import (
 	"testing"
 
-	"github.com/aimuzov/happ-cli/internal/link"
+	"github.com/aimuzov/proxray/internal/link"
 )
 
 func servers() []*link.Server {

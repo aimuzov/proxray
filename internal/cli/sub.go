@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/aimuzov/happ-cli/internal/profile"
-	"github.com/aimuzov/happ-cli/internal/store"
-	"github.com/aimuzov/happ-cli/internal/ui"
+	"github.com/aimuzov/proxray/internal/profile"
+	"github.com/aimuzov/proxray/internal/store"
+	"github.com/aimuzov/proxray/internal/ui"
 )
 
 func newSubCmd() *cobra.Command {

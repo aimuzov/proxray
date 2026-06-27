@@ -9,7 +9,7 @@ import (
 
 	"github.com/xjasonlyu/tun2socks/v2/engine"
 
-	"github.com/aimuzov/happ-cli/internal/log"
+	"github.com/aimuzov/proxray/internal/log"
 )
 
 // Tunnel is a running TUN tunnel and the routing changes it installed.

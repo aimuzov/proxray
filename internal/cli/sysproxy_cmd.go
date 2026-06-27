@@ -3,8 +3,8 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/aimuzov/happ-cli/internal/sysproxy"
-	"github.com/aimuzov/happ-cli/internal/ui"
+	"github.com/aimuzov/proxray/internal/sysproxy"
+	"github.com/aimuzov/proxray/internal/ui"
 )
 
 func newSysProxyCmd() *cobra.Command {

@@ -3,7 +3,7 @@ package xray
 import (
 	"fmt"
 
-	"github.com/aimuzov/happ-cli/internal/link"
+	"github.com/aimuzov/proxray/internal/link"
 )
 
 // Supported reports whether xray-core can dial the given protocol as an
