@@ -9,9 +9,14 @@ import (
 	charmlog "github.com/charmbracelet/log"
 )
 
-var logger = charmlog.NewWithOptions(os.Stderr, charmlog.Options{
-	ReportTimestamp: false,
-})
+// logOptions formats every line as "<time> <LEVEL> <message>" with a compact,
+// human-readable clock (no microseconds, no date).
+var logOptions = charmlog.Options{
+	ReportTimestamp: true,
+	TimeFormat:      "15:04:05",
+}
+
+var logger = charmlog.NewWithOptions(os.Stderr, logOptions)
 
 // SetVerbose raises the level to DEBUG when v is true, else INFO.
 func SetVerbose(v bool) {
@@ -25,7 +30,7 @@ func SetVerbose(v bool) {
 // SetOutput redirects the logger (used by tests). It resets to a fresh logger
 // on w so the color profile is recomputed for the new writer.
 func SetOutput(w io.Writer) {
-	logger = charmlog.NewWithOptions(w, charmlog.Options{ReportTimestamp: false})
+	logger = charmlog.NewWithOptions(w, logOptions)
 }
 
 func Debug(msg string, kv ...any) { logger.Debug(msg, kv...) }
