@@ -1,0 +1,16 @@
+# The servers the README recording shows. They are invented: the hosts are under
+# example (a reserved domain that resolves nowhere), and the keys are random bytes
+# generated for this file. Nothing here points at a real panel or a real server.
+#
+# The list is deliberately mixed, so the recording shows what the real output looks
+# like: four protocols xray-core can dial, plus a hysteria2 entry that `proxray list`
+# marks as unsupported.
+#
+# Lines starting with # are dropped by panel.go before the list is encoded.
+
+vless://9be2f90f-b4cb-465b-8125-07cad8355a2b@de.example:443?security=reality&pbk=Oh2hLT-L7RNwXauaddvEGf0BhW8GKoAvpgUtQ-MnKdQ&sid=883f44a7&sni=www.microsoft.com&fp=chrome&flow=xtls-rprx-vision#🇩🇪 Germany
+vless://d74cf360-a276-4e15-8669-7821027c3543@nl.example:443?type=ws&security=tls&path=/ws&host=nl.example&sni=nl.example#🇳🇱 Netherlands
+trojan://demo-trojan-password@fi.example:443?security=tls&sni=fi.example&fp=chrome#🇫🇮 Finland
+vmess://eyJ2IjogIjIiLCAicHMiOiAi8J+HuvCfh7ggVVNBIiwgImFkZCI6ICJ1cy5leGFtcGxlIiwgInBvcnQiOiAiNDQzIiwgImlkIjogIjhhOTcxYjllLWVjMjUtNDg4YS04YmUzLTIxYjNkNjkyYjc0OCIsICJhaWQiOiAiMCIsICJzY3kiOiAiYXV0byIsICJuZXQiOiAid3MiLCAidHlwZSI6ICJub25lIiwgImhvc3QiOiAidXMuZXhhbXBsZSIsICJwYXRoIjogIi92bWVzcyIsICJ0bHMiOiAidGxzIiwgInNuaSI6ICJ1cy5leGFtcGxlIn0=
+ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpkZW1vLXBhc3N3b3Jk@jp.example:8388#🇯🇵 Japan
+hysteria2://demo-hy2-password@hy.example:443?sni=hy.example#Fast HY2

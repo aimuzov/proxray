@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" alt="proxray" width="800" />
+  <img src="docs/demo.gif" alt="proxray in action" width="900" />
 </p>
 
 # proxray
@@ -271,6 +271,24 @@ SOCKS inbound reaches a target through the proxy.
 > xray-core and tun2socks require different `gvisor.dev/gvisor` versions; a
 > `replace` directive in `go.mod` pins gvisor to the version both build against.
 > Don't drop it — see the comment there.
+
+### Recording the demo
+
+The gif at the top is scripted, so it can be redone on any machine that has
+[vhs](https://github.com/charmbracelet/vhs) and `ttyd`:
+
+```sh
+go build -o proxray .
+cd docs && vhs demo.tape
+```
+
+It runs against a local fake panel (`docs/demo/panel.go` serves an invented
+subscription on `127.0.0.1:8099`), in the throwaway fish profile under
+`docs/demo-profile`, with `HOME` pointed at `docs/demo-home`. The commands on
+screen are the real ones; the subscription behind them belongs to nobody, so
+neither the recorder's URL nor their servers end up in the gif. The first
+recording downloads the geo databases the RU bypass needs; later ones reuse the
+cache.
 
 ### Releasing
 

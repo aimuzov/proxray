@@ -8,5 +8,9 @@
 *.out
 coverage.*
 
+# Written while recording the README demo, not part of the checkout
+docs/demo-home/
+docs/demo-profile/fish/fish_variables
+
 # Editor / OS
 .DS_Store

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" alt="proxray" width="800" />
+  <img src="docs/demo.gif" alt="proxray в работе" width="900" />
 </p>
 
 # proxray
@@ -272,6 +272,23 @@ go vet ./...
 > xray-core и tun2socks требуют разные версии `gvisor.dev/gvisor`; директива
 > `replace` в `go.mod` фиксирует gvisor на версии, с которой собираются оба. Не
 > удаляй её — см. комментарий рядом.
+
+### Запись демо
+
+Гифка в шапке записана скриптом, так что её можно переснять на любой машине с
+[vhs](https://github.com/charmbracelet/vhs) и `ttyd`:
+
+```sh
+go build -o proxray .
+cd docs && vhs demo.tape
+```
+
+Запись идёт против локальной фейковой панели (`docs/demo/panel.go` отдаёт
+вымышленную подписку на `127.0.0.1:8099`), в одноразовом fish-профиле
+`docs/demo-profile` и с `HOME`, указывающим на `docs/demo-home`. Поэтому команды
+в кадре настоящие, а настоящая подписка — ничья: ни URL, ни серверы рекордера в
+гифку не попадают. Первая запись скачивает geo-базы для RU-байпаса; дальше они
+берутся из кэша.
 
 ### Релизы
 
