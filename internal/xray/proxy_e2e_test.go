@@ -34,10 +34,7 @@ func TestProxyEndToEnd(t *testing.T) {
       "outbounds": [{"protocol": "freedom"}]
     }`, ssPort, method, password)
 
-	server, err := Start([]byte(serverCfg))
-	if err != nil {
-		t.Fatalf("start ss server: %v", err)
-	}
+	server := startInstance(t, []byte(serverCfg))
 	defer server.Close()
 
 	clientSrv := &link.Server{
@@ -53,10 +50,7 @@ func TestProxyEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("JSON: %v", err)
 	}
-	client, err := Start(raw)
-	if err != nil {
-		t.Fatalf("start client: %v\n%s", err, raw)
-	}
+	client := startInstance(t, raw)
 	defer client.Close()
 
 	dialer, err := proxy.SOCKS5("tcp", fmt.Sprintf("127.0.0.1:%d", socksPort), nil, proxy.Direct)

@@ -18,9 +18,12 @@ import (
 // when verbose is set; general Info/Debug likewise.
 type Handler struct{ verbose bool }
 
-// Install registers the handler as xray-core's global log handler. It MUST be
-// called AFTER xray.Start(), because starting an instance registers xray's own
-// handler; calling Install afterwards replaces it.
+// Install registers the handler as xray-core's global log handler, replacing
+// the one xray registers for itself. It MUST be called between xray.New() and
+// Instance.Start(): New is what registers xray's own handler, and Start is what
+// emits the "Xray <version> started" message. Installing in that gap means the
+// message is rendered here, synchronously, instead of being queued on xray's
+// background writer and landing in the middle of whatever we print next.
 func Install(verbose bool) {
 	xlog.RegisterHandler(Handler{verbose: verbose})
 }

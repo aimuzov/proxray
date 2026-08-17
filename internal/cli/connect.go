@@ -117,12 +117,18 @@ func runProxy(ctx context.Context, srv *link.Server, socksPort, httpPort int, sy
 	if err != nil {
 		return err
 	}
-	inst, err := xray.Start(raw)
+	inst, err := xray.New(raw)
 	if err != nil {
 		return err
 	}
 	defer inst.Close()
+	// Install before Start: the engine's startup message is emitted during
+	// Start, and only a handler that is already in place renders it through our
+	// logger instead of letting xray's background writer cut into the ui block.
 	xraylog.Install(verbose)
+	if err := inst.Start(); err != nil {
+		return err
+	}
 
 	ui.Success("Proxy is up:")
 	ui.Endpoints(socksPort, httpPort)
@@ -178,12 +184,15 @@ func runTun(ctx context.Context, srv *link.Server, socksPort int, bypass string)
 	if err != nil {
 		return err
 	}
-	inst, err := xray.Start(raw)
+	inst, err := xray.New(raw)
 	if err != nil {
 		return err
 	}
 	defer inst.Close()
 	xraylog.Install(verbose)
+	if err := inst.Start(); err != nil {
+		return err
+	}
 
 	tun, err := tunnel.Start(tunnel.Options{
 		SocksAddr: fmt.Sprintf("127.0.0.1:%d", socksPort),

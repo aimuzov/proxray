@@ -19,6 +19,20 @@ func freePort(t *testing.T) int {
 	return l.Addr().(*net.TCPAddr).Port
 }
 
+// startInstance builds and starts an instance from a raw config, failing the
+// test on either step.
+func startInstance(t *testing.T, raw []byte) *Instance {
+	t.Helper()
+	inst, err := New(raw)
+	if err != nil {
+		t.Fatalf("New: %v\nconfig:\n%s", err, raw)
+	}
+	if err := inst.Start(); err != nil {
+		t.Fatalf("Start: %v\nconfig:\n%s", err, raw)
+	}
+	return inst
+}
+
 // TestStartAndListen builds a config from a server and starts the embedded
 // xray-core, verifying it accepts our generated JSON and binds the SOCKS port.
 func TestStartAndListen(t *testing.T) {
@@ -36,10 +50,7 @@ func TestStartAndListen(t *testing.T) {
 		t.Fatalf("JSON: %v", err)
 	}
 
-	inst, err := Start(raw)
-	if err != nil {
-		t.Fatalf("Start: %v\nconfig:\n%s", err, raw)
-	}
+	inst := startInstance(t, raw)
 	defer inst.Close()
 
 	// Give the inbound a moment to bind, then confirm it's listening.
