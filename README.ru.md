@@ -17,14 +17,20 @@
 
 ## Возможности
 
-- **Совместимость с HAPP**: subscription-URL отдаёт base64-список share-ссылок;
-  читаются метаданные из заголовков, которые понимает HAPP:
+- **Совместимость с HAPP** в обоих форматах, которые отдают панели:
+  base64-список share-ссылок и JSON-подписка (готовые конфиги xray). Читаются
+  метаданные из заголовков, которые понимает HAPP:
   `subscription-userinfo` (трафик/срок), `profile-title`,
   `profile-update-interval`, `support-url`. Запросы уходят с
   `User-Agent: Happ/1.0`, чтобы панель вернула формат, который ждёт HAPP
   (переопределяется флагом `--ua`).
+- **JSON-подписка исполняется так, как её написала панель**: правила
+  маршрутизации, балансировщики и автопереключение по observatory сохраняются
+  без изменений, своими остаются только порты прослушивания и уровень логов.
+  Маршрутизацию задаёт панель, поэтому `--bypass` к таким записям не
+  применяется.
 - **Протоколы**: VLESS (включая Reality / XTLS Vision), VMess, Trojan,
-  Shadowsocks. **Транспорты**: TCP, WebSocket, gRPC, HTTP/2.
+  Shadowsocks, Hysteria2. **Транспорты**: TCP, WebSocket, gRPC, HTTP/2.
   **Безопасность**: TLS, Reality.
 - **Три способа завернуть трафик**:
   - `connect` — локальный SOCKS5 + HTTP прокси на `127.0.0.1` (без root);
@@ -33,7 +39,7 @@
     без правки таблицы маршрутов — уживается с другим активным VPN;
   - `connect --mode tun` — полноценный системный VPN через utun (нужен `sudo`).
 
-> **Примечание**: xray-core не умеет outbound для Hysteria2 / TUIC / WireGuard.
+> **Примечание**: xray-core не умеет TUIC, а также Hysteria2 с обфускацией.
 > Такие серверы всё равно парсятся и показываются (с пометкой `unsupported`), но
 > подключиться к ним через xray нельзя (нужен движок на базе sing-box).
 
@@ -45,6 +51,7 @@ subscription URL
       ▼
 base64-список ссылок ──► link.Parse ──► []link.Server
                                             │ xray.BuildConfig
+   JSON-конфиги ────────► rawconf.Parse ────┤ rawconf.Render
                                             ▼
                                     конфиг xray-core (JSON)
                                             │ xray.Start (встроенное ядро)
@@ -127,11 +134,15 @@ proxray list --sub x   # серверы конкретной подписки
 ```
 
 ```
-#  PROTOCOL                 ADDRESS              TAG
-1  vless                    de.example:443       🇩🇪 Германия
-2  trojan                   nl.example:443       🇳🇱 Нидерланды
-3  hysteria2 (unsupported)  hy.example:443       Fast HY2
+#  PROTOCOL   ADDRESS         TAG               NOTE
+1  vless      4 servers       🇪🇺 Авто           Выбирает быстрый сервер
+2  vless      de.example:443  🇩🇪 Германия
+3  hysteria   hy.example:443  Fast HY2
 ```
+
+Записи JSON-подписки показывают описание от панели, а запись с пулом серверов за
+балансировщиком — их количество вместо одного адреса. Колонка `NOTE` не
+выводится, если описаний в подписке нет.
 
 ### Подключение
 
@@ -234,9 +245,10 @@ proxray system-proxy off        # аварийный сброс системно
 
 ## Ограничения
 
-- **Hysteria2 / TUIC / WireGuard** xray-core не умеет (парсятся и показываются как
-  `unsupported`). Большинство HAPP-профилей — VLESS-Reality, они работают
-  полностью.
+- **TUIC**, а также **Hysteria2 с обфускацией**, xray-core не умеет (парсятся и
+  показываются как `unsupported`).
+- **`--bypass` не применяется к записям JSON-подписки**: маршрутизацию задают
+  правила самой панели.
 - **TUN и `--system-proxy` пока только для macOS**.
 - **В режиме TUN IPv6 заблокирован** (путь прокси — IPv4); IPv6-only ресурсы во
   время подключения недоступны.
@@ -251,7 +263,8 @@ proxray system-proxy off        # аварийный сброс системно
 | Пакет               | Назначение                                                   |
 | ------------------- | ------------------------------------------------------------ |
 | `internal/link`     | парсинг share-ссылок (vless/vmess/trojan/ss/hysteria2)       |
-| `internal/profile`  | загрузка подписки, декод base64-списка + заголовков          |
+| `internal/profile`  | загрузка подписки, декод тела + заголовков                    |
+| `internal/rawconf`  | JSON-подписки: разбор и правка готовых конфигов               |
 | `internal/xray`     | сборка конфига xray-core из сервера, запуск встроенного ядра |
 | `internal/tunnel`   | режим TUN: tun2socks + управление маршрутами macOS           |
 | `internal/sysproxy` | системный прокси macOS через networksetup                    |

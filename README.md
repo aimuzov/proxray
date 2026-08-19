@@ -17,15 +17,20 @@ binaries required.
 
 ## Features
 
-- **HAPP-compatible** subscriptions: a subscription URL returns a base64 list of
-  share links, and the metadata headers HAPP clients understand are read:
+- **HAPP-compatible** subscriptions in both formats a panel may serve: a base64
+  list of share links, or a JSON document of ready-made xray configs. The
+  metadata headers HAPP clients understand are read too:
   `subscription-userinfo` (traffic/expiry), `profile-title`,
   `profile-update-interval`, `support-url`. Requests are sent with
   `User-Agent: Happ/1.0` so panels return the format HAPP expects (overridable
   with `--ua`).
+- **JSON subscriptions run as the panel wrote them**: routing rules, balancers
+  and observatory-based auto-switching are kept verbatim, and only the listen
+  ports and log level are ours. Since the panel already decides what goes
+  direct, `--bypass` is not applied to such entries.
 - **Protocols**: VLESS (incl. Reality / XTLS Vision), VMess, Trojan,
-  Shadowsocks. **Transports**: TCP, WebSocket, gRPC, HTTP/2. **Security**: TLS,
-  Reality.
+  Shadowsocks, Hysteria2. **Transports**: TCP, WebSocket, gRPC, HTTP/2.
+  **Security**: TLS, Reality.
 - **Three ways to route traffic**:
   - `connect` — local SOCKS5 + HTTP proxy on `127.0.0.1` (no root);
   - `connect --system-proxy` — sets the macOS system SOCKS + HTTP/HTTPS proxy
@@ -33,7 +38,7 @@ binaries required.
     routing table — coexists with another active VPN;
   - `connect --mode tun` — full system-wide VPN via a utun device (needs `sudo`).
 
-> **Note**: xray-core cannot dial Hysteria2 / TUIC / WireGuard outbounds. Such
+> **Note**: xray-core cannot dial TUIC, nor Hysteria2 with obfuscation. Such
 > servers are still parsed and listed (marked `unsupported`), but you cannot
 > connect to them through xray (a sing-box based core would be required).
 
@@ -45,6 +50,7 @@ subscription URL
       ▼
 base64 list of links ──► link.Parse ──► []link.Server
                                             │ xray.BuildConfig
+      JSON configs ─────► rawconf.Parse ────┤ rawconf.Render
                                             ▼
                                     xray-core config (JSON)
                                             │ xray.Start (embedded core)
@@ -127,11 +133,16 @@ proxray list --sub x   # servers in a specific subscription
 ```
 
 ```
-#  PROTOCOL                 ADDRESS              TAG
-1  vless                    de.example:443       🇩🇪 Germany
-2  trojan                   nl.example:443       🇳🇱 Netherlands
-3  hysteria2 (unsupported)  hy.example:443       Fast HY2
+#  PROTOCOL   ADDRESS         TAG               NOTE
+1  vless      4 servers       🇪🇺 Auto           Picks the fastest server
+2  vless      de.example:443  🇩🇪 Germany
+3  hysteria   hy.example:443  Fast HY2
 ```
+
+Entries of a JSON subscription show the panel's own description, and an entry
+that pools several servers behind a balancer shows their count instead of a
+single address. The `NOTE` column is omitted when the subscription has no
+descriptions.
 
 ### Connecting
 
@@ -234,9 +245,10 @@ overridable with the global `--home` flag.
 
 ## Limitations
 
-- **Hysteria2 / TUIC / WireGuard** cannot be dialed by xray-core (they are parsed
-  and listed as `unsupported`). Most HAPP profiles are VLESS-Reality and work
-  fully.
+- **TUIC**, and **Hysteria2 with obfuscation**, cannot be dialed by xray-core
+  (they are parsed and listed as `unsupported`).
+- **`--bypass` does not apply to JSON subscription entries**: their routing comes
+  from the panel's own rules.
 - **TUN and `--system-proxy` are macOS-only** in this version.
 - **IPv6 is blocked in TUN mode** (the proxy path is IPv4); IPv6-only
   destinations become unreachable while connected.
@@ -250,7 +262,8 @@ off`) and TUN IPv6-block routes remain (`sudo route -n delete -inet6 -net
 | Package             | Responsibility                                              |
 | ------------------- | ----------------------------------------------------------- |
 | `internal/link`     | parse share links (vless/vmess/trojan/ss/hysteria2)         |
-| `internal/profile`  | fetch a subscription, decode the base64 list + headers      |
+| `internal/profile`  | fetch a subscription, decode its body + headers             |
+| `internal/rawconf`  | JSON subscriptions: inspect and adjust ready-made configs   |
 | `internal/xray`     | build xray-core config from a server, run the embedded core |
 | `internal/tunnel`   | TUN mode: tun2socks + macOS route management                |
 | `internal/sysproxy` | macOS system proxy via networksetup                         |
