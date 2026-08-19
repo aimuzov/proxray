@@ -7,27 +7,28 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/aimuzov/proxray/internal/link"
+	"github.com/aimuzov/proxray/internal/profile"
 	"github.com/aimuzov/proxray/internal/store"
 )
 
-func TestServerTagsCarryTagAndProtocol(t *testing.T) {
-	srvs := []*link.Server{
-		{Tag: "Netherlands #1", Protocol: "vless"},
-		{Tag: "Germany", Protocol: "trojan"},
+func TestNodeTagsCarryTagAndProtocol(t *testing.T) {
+	list := []profile.Node{
+		profile.NodeFromServer(&link.Server{Tag: "Netherlands #1", Protocol: "vless"}),
+		profile.NodeFromServer(&link.Server{Tag: "Germany", Protocol: "trojan"}),
 	}
-	got := serverTags(srvs)
+	got := nodeTags(list)
 	want := []cobra.Completion{
 		cobra.CompletionWithDesc("Netherlands #1", "vless"),
 		cobra.CompletionWithDesc("Germany", "trojan"),
 	}
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("serverTags() = %#v, want %#v", got, want)
+		t.Errorf("nodeTags() = %#v, want %#v", got, want)
 	}
 }
 
-func TestServerTagsEmpty(t *testing.T) {
-	if got := serverTags(nil); len(got) != 0 {
-		t.Errorf("serverTags(nil) = %#v, want empty", got)
+func TestNodeTagsEmpty(t *testing.T) {
+	if got := nodeTags(nil); len(got) != 0 {
+		t.Errorf("nodeTags(nil) = %#v, want empty", got)
 	}
 }
 

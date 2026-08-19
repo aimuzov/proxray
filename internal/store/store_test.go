@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"testing"
 )
 
@@ -45,12 +46,62 @@ func TestUpsertPersistsAndReloads(t *testing.T) {
 		t.Errorf("reloaded entry = %+v", got)
 	}
 
-	servers := got.Servers()
-	if len(servers) != 2 {
-		t.Fatalf("Servers() = %d, want 2", len(servers))
+	nodes := got.Nodes()
+	if len(nodes) != 2 {
+		t.Fatalf("Nodes() = %d, want 2", len(nodes))
 	}
-	if servers[0].Protocol != "vless" || servers[1].Protocol != "trojan" {
-		t.Errorf("protocols = %q %q", servers[0].Protocol, servers[1].Protocol)
+	if nodes[0].Protocols[0] != "vless" || nodes[1].Protocols[0] != "trojan" {
+		t.Errorf("protocols = %q %q", nodes[0].Protocols, nodes[1].Protocols)
+	}
+}
+
+func TestSubEntryNodesFromConfigs(t *testing.T) {
+	entry := SubEntry{
+		Name: "json",
+		URL:  "https://example.com/sub",
+		Configs: []json.RawMessage{
+			json.RawMessage(`{"remarks":"Poland","meta":{"serverDescription":"main"},
+				"outbounds":[{"tag":"proxy","protocol":"vless",
+				"settings":{"vnext":[{"address":"pl.example.com","port":443}]}}]}`),
+			json.RawMessage(`{"broken":`),
+		},
+	}
+
+	nodes := entry.Nodes()
+	if len(nodes) != 1 {
+		t.Fatalf("Nodes() = %d, want 1 (the malformed config is skipped)", len(nodes))
+	}
+	if nodes[0].Tag != "Poland" || nodes[0].Note != "main" {
+		t.Errorf("node = %+v", nodes[0])
+	}
+	if nodes[0].Address != "pl.example.com:443" || nodes[0].Config == nil {
+		t.Errorf("node = %+v", nodes[0])
+	}
+}
+
+func TestSubEntryRoundTripsConfigs(t *testing.T) {
+	dir := t.TempDir()
+	st, err := Open(dir)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	raw := json.RawMessage(`{"remarks":"Poland","outbounds":[{"tag":"proxy","protocol":"vless",` +
+		`"settings":{"vnext":[{"address":"pl.example.com","port":443}]}}]}`)
+	if err := st.Upsert(SubEntry{Name: "json", URL: "u", Configs: []json.RawMessage{raw}}); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+
+	st2, err := Open(dir)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	got, ok := st2.Find("json")
+	if !ok {
+		t.Fatal("subscription 'json' not found after reload")
+	}
+	nodes := got.Nodes()
+	if len(nodes) != 1 || nodes[0].Tag != "Poland" {
+		t.Fatalf("reloaded nodes = %+v", nodes)
 	}
 }
 

@@ -1,15 +1,18 @@
 // Package profile handles HAPP-style subscriptions: fetching a subscription
-// URL, decoding its base64 list of share links, and reading the metadata
-// headers HAPP clients understand (subscription-userinfo, profile-title, ...).
+// URL, decoding its body — a base64 list of share links, or a JSON document of
+// ready-made xray configs — and reading the metadata headers HAPP clients
+// understand (subscription-userinfo, profile-title, ...).
 package profile
 
 import (
 	"encoding/base64"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aimuzov/proxray/internal/link"
+	"github.com/aimuzov/proxray/internal/rawconf"
 )
 
 // UserInfo is the parsed subscription-userinfo header: traffic counters and the
@@ -24,17 +27,35 @@ type UserInfo struct {
 // Remaining returns the remaining traffic in bytes (Total - used).
 func (u UserInfo) Remaining() int64 { return u.Total - u.Upload - u.Download }
 
-// ParseBody turns a subscription response body into a list of servers. The body
-// may be a base64-encoded newline-separated list of share links, or the plain
-// list itself. Lines that fail to parse are skipped.
-func ParseBody(body []byte) ([]*link.Server, error) {
+// Body is a parsed subscription body. Panels serve one of two formats, and
+// which one arrives is decided by the content, not by the URL: a list of share
+// links, or a JSON document of ready-made xray configs. Exactly one of the
+// fields is populated.
+type Body struct {
+	Servers []*link.Server
+	Configs []*rawconf.Config
+}
+
+// ParseBody turns a subscription response body into servers or configs. A share
+// link list may be base64-encoded or plain; lines that fail to parse are
+// skipped. A JSON subscription is parsed as a whole: a malformed entry there is
+// an error rather than something to skip, since it is the entire response.
+func ParseBody(body []byte) (Body, error) {
 	text := strings.TrimSpace(string(body))
 
-	// A base64-encoded list has no scheme markers; decode it first.
+	// A base64-encoded body has no scheme markers; decode it first.
 	if !strings.Contains(text, "://") {
 		if decoded, err := decodeBase64(text); err == nil {
 			text = string(decoded)
 		}
+	}
+
+	configs, err := rawconf.Parse([]byte(text))
+	switch {
+	case err == nil:
+		return Body{Configs: configs}, nil
+	case !errors.Is(err, rawconf.ErrNotJSON):
+		return Body{}, err
 	}
 
 	var servers []*link.Server
@@ -51,7 +72,7 @@ func ParseBody(body []byte) ([]*link.Server, error) {
 		}
 		servers = append(servers, s)
 	}
-	return servers, nil
+	return Body{Servers: servers}, nil
 }
 
 // ParseUserInfo parses a subscription-userinfo header value of the form

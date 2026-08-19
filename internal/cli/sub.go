@@ -40,7 +40,7 @@ func subAddCmd() *cobra.Command {
 			if err := st.Upsert(entry); err != nil {
 				return err
 			}
-			ui.Success("Added subscription %q (%d servers).", entry.Name, len(entry.Links))
+			ui.Success("Added subscription %q (%d servers).", entry.Name, len(entry.Nodes()))
 			if st.Active() == entry.Name {
 				ui.Info("It is now the active subscription.")
 			}
@@ -79,7 +79,7 @@ func subUpdateCmd() *cobra.Command {
 			if err := st.Upsert(entry); err != nil {
 				return err
 			}
-			ui.Success("Updated %q (%d servers).", entry.Name, len(entry.Links))
+			ui.Success("Updated %q (%d servers).", entry.Name, len(entry.Nodes()))
 			return nil
 		},
 	}
@@ -114,7 +114,7 @@ func subListCmd() *cobra.Command {
 				}
 				rows = append(rows, []string{
 					active, s.Name, s.Title,
-					fmt.Sprintf("%d", len(s.Links)),
+					fmt.Sprintf("%d", len(s.Nodes())),
 					formatTraffic(s.UserInfo), expires,
 				})
 			}
@@ -180,11 +180,7 @@ func fetchEntry(ctx context.Context, rawURL, name, userAgent string) (store.SubE
 	if name == "" {
 		name = defaultName(sub.Title, rawURL)
 	}
-	links := make([]string, 0, len(sub.Servers))
-	for _, s := range sub.Servers {
-		links = append(links, s.Raw)
-	}
-	return store.SubEntry{
+	entry := store.SubEntry{
 		Name:           name,
 		URL:            rawURL,
 		UserAgent:      userAgent,
@@ -193,6 +189,16 @@ func fetchEntry(ctx context.Context, rawURL, name, userAgent string) (store.SubE
 		UpdateInterval: sub.UpdateInterval,
 		UserInfo:       sub.UserInfo,
 		UpdatedAt:      time.Now().Format(time.RFC3339),
-		Links:          links,
-	}, nil
+	}
+	for _, s := range sub.Body.Servers {
+		entry.Links = append(entry.Links, s.Raw)
+	}
+	for _, c := range sub.Body.Configs {
+		raw, err := c.JSON()
+		if err != nil {
+			return store.SubEntry{}, err
+		}
+		entry.Configs = append(entry.Configs, raw)
+	}
+	return entry, nil
 }

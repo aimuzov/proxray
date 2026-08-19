@@ -9,9 +9,11 @@ import (
 
 	"github.com/aimuzov/proxray/internal/link"
 	"github.com/aimuzov/proxray/internal/profile"
+	"github.com/aimuzov/proxray/internal/rawconf"
 )
 
-// SubEntry is one stored subscription and its cached links.
+// SubEntry is one stored subscription and its cached contents: share links for
+// a link subscription, whole xray configs for a JSON one.
 type SubEntry struct {
 	Name           string            `json:"name"`
 	URL            string            `json:"url"`
@@ -22,17 +24,25 @@ type SubEntry struct {
 	UserInfo       *profile.UserInfo `json:"userInfo,omitempty"`
 	UpdatedAt      string            `json:"updatedAt,omitempty"`
 	Links          []string          `json:"links,omitempty"`
+	Configs        []json.RawMessage `json:"configs,omitempty"`
 	Bypass         string            `json:"bypass,omitempty"`
 }
 
-// Servers re-parses the cached share links into Server values, skipping any
-// that no longer parse.
-func (e SubEntry) Servers() []*link.Server {
-	var out []*link.Server
+// Nodes re-parses the cached entries into selectable nodes, skipping any that
+// no longer parse.
+func (e SubEntry) Nodes() []profile.Node {
+	var out []profile.Node
 	for _, raw := range e.Links {
 		if s, err := link.Parse(raw); err == nil {
-			out = append(out, s)
+			out = append(out, profile.NodeFromServer(s))
 		}
+	}
+	for _, raw := range e.Configs {
+		cfgs, err := rawconf.Parse(raw)
+		if err != nil {
+			continue
+		}
+		out = append(out, profile.NodeFromConfig(cfgs[0]))
 	}
 	return out
 }

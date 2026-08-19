@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/aimuzov/proxray/internal/link"
+	"github.com/aimuzov/proxray/internal/profile"
 	"github.com/aimuzov/proxray/internal/sysproxy"
 	"github.com/aimuzov/proxray/internal/tunnel"
 	"github.com/aimuzov/proxray/internal/ui"
@@ -54,12 +54,12 @@ func newConnectCmd() *cobra.Command {
 			if len(args) > 0 {
 				selector = args[0]
 			}
-			srv, idx, err := selectServer(sub.Servers(), selector)
+			node, idx, err := selectNode(sub.Nodes(), selector)
 			if err != nil {
 				return err
 			}
-			if !xray.Supported(srv.Protocol) {
-				return fmt.Errorf("server #%d uses %q, which xray-core cannot dial; pick another server", idx+1, srv.Protocol)
+			if !supported(node) {
+				return fmt.Errorf("server #%d uses %q, which xray-core cannot dial; pick another server", idx+1, protocolList(node))
 			}
 
 			bypass, err := normalizeBypass(sub.Bypass)
@@ -72,20 +72,28 @@ func newConnectCmd() *cobra.Command {
 				}
 			}
 
-			ui.Server(idx, *srv)
+			ui.Node(idx, node)
+
+			// A JSON subscription entry brings its own routing rules, which
+			// already decide what goes direct; layering ours on top would fight
+			// them.
+			if node.Config != nil && bypass != "off" {
+				ui.Info("Routing comes from the subscription config; --bypass is not applied.")
+				bypass = "off"
+			}
 
 			// prepareGeo may download the geo databases (first run / daily
 			// refresh); print the server line first so a slow download isn't
 			// silent.
-			if err := prepareGeo(bypass); err != nil {
+			if err := prepareGeo(bypass, node); err != nil {
 				return err
 			}
 
 			switch mode {
 			case "proxy":
-				return runProxy(cmd.Context(), srv, socksPort, httpPort, systemProxy, bypass)
+				return runProxy(cmd.Context(), node, socksPort, httpPort, systemProxy, bypass)
 			case "tun":
-				return runTun(cmd.Context(), srv, socksPort, bypass)
+				return runTun(cmd.Context(), node, socksPort, bypass)
 			default:
 				return fmt.Errorf("unknown mode %q (use 'proxy' or 'tun')", mode)
 			}
@@ -108,12 +116,12 @@ func newConnectCmd() *cobra.Command {
 	return cmd
 }
 
-func runProxy(ctx context.Context, srv *link.Server, socksPort, httpPort int, systemProxy bool, bypass string) error {
-	cfg, err := xray.BuildConfig(srv, xray.Options{SocksPort: socksPort, HTTPPort: httpPort, Bypass: bypass, LogLevel: xrayLogLevel(verbose)})
-	if err != nil {
-		return err
-	}
-	raw, err := cfg.JSON()
+func runProxy(ctx context.Context, node profile.Node, socksPort, httpPort int, systemProxy bool, bypass string) error {
+	raw, err := buildRuntimeConfig(node, runtimeOptions{
+		SocksPort: socksPort,
+		HTTPPort:  httpPort,
+		Bypass:    bypass,
+	})
 	if err != nil {
 		return err
 	}
@@ -152,35 +160,30 @@ func runProxy(ctx context.Context, srv *link.Server, socksPort, httpPort int, sy
 	return nil
 }
 
-func runTun(ctx context.Context, srv *link.Server, socksPort int, bypass string) error {
-	ips, err := resolveIPv4(srv.Address)
+func runTun(ctx context.Context, node profile.Node, socksPort int, bypass string) error {
+	// Pin the outbounds to concrete IPs, so xray dials exactly the addresses we
+	// route around the tunnel.
+	pins, ips, err := resolveNodeIPs(node)
 	if err != nil {
-		return fmt.Errorf("resolve server address %q: %w", srv.Address, err)
+		return err
 	}
 
-	// Pin the outbound to a concrete IP and keep the TLS SNI on the domain, so
-	// xray dials the exact IP we route around the tunnel.
-	pinned := *srv
-	if pinned.SNI == "" {
-		pinned.SNI = srv.Address
-	}
-	pinned.Address = ips[0]
-
-	// RU bypass is not effective in tun mode yet: even with the direct outbound
-	// bound to the server-route interface (IP_BOUND_IF), its sockets still loop
-	// back through utun. Until that is solved, force bypass off in tun mode so RU
-	// sites keep working through the tunnel instead of hanging. Bypass remains
-	// effective in proxy / --system-proxy modes.
+	// Direct routing is not effective in tun mode yet: even with the direct
+	// outbound bound to the server-route interface (IP_BOUND_IF), its sockets
+	// still loop back through utun. Until that is solved, everything goes
+	// through the tunnel instead of hanging. Bypass remains effective in
+	// proxy / --system-proxy modes.
 	if bypass != "off" {
 		ui.Warn("--bypass is not supported in tun mode yet; routing all traffic through the tunnel")
 		bypass = "off"
 	}
 
-	cfg, err := xray.BuildConfig(&pinned, xray.Options{SocksPort: socksPort, Bypass: bypass, LogLevel: xrayLogLevel(verbose)})
-	if err != nil {
-		return err
-	}
-	raw, err := cfg.JSON()
+	raw, err := buildRuntimeConfig(node, runtimeOptions{
+		SocksPort: socksPort,
+		Bypass:    bypass,
+		Tunnel:    true,
+		PinIPs:    pins,
+	})
 	if err != nil {
 		return err
 	}
@@ -203,7 +206,7 @@ func runTun(ctx context.Context, srv *link.Server, socksPort int, bypass string)
 	}
 	defer tun.Close()
 
-	ui.Success("TUN tunnel is up; all traffic is routed through %s.", srv.Tag)
+	ui.Success("TUN tunnel is up; all traffic is routed through %s.", node.Tag)
 	ui.Info("Press Ctrl+C to disconnect and restore routing.")
 	<-ctx.Done()
 	ui.Info("\nDisconnecting and restoring routes...")

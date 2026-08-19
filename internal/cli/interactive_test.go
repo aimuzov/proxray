@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aimuzov/proxray/internal/link"
+	"github.com/aimuzov/proxray/internal/profile"
 )
 
 func TestBuildSudoArgs(t *testing.T) {
@@ -69,12 +70,13 @@ func TestMethodNeedsRoot(t *testing.T) {
 }
 
 func TestSupportedServerChoices(t *testing.T) {
-	servers := []*link.Server{
-		{Tag: "alpha", Protocol: "vless", Address: "1.1.1.1", Port: 443},
-		{Tag: "beta", Protocol: "hysteria2", Address: "2.2.2.2", Port: 8443}, // unsupported
-		{Tag: "gamma", Protocol: "trojan", Address: "3.3.3.3", Port: 443},
+	list := []profile.Node{
+		profile.NodeFromServer(&link.Server{Tag: "alpha", Protocol: "vless", Address: "1.1.1.1", Port: 443}),
+		// Obfuscated hysteria2 is the one variant xray-core cannot dial.
+		profile.NodeFromServer(&link.Server{Tag: "beta", Protocol: "hysteria2", Address: "2.2.2.2", Port: 8443, Obfs: "salamander"}),
+		profile.NodeFromServer(&link.Server{Tag: "gamma", Protocol: "trojan", Address: "3.3.3.3", Port: 443}),
 	}
-	got := supportedServerChoices(servers)
+	got := supportedServerChoices(list)
 	want := []serverChoice{
 		{Index: 0, Label: "alpha  [vless]  1.1.1.1:443"},
 		{Index: 2, Label: "gamma  [trojan]  3.3.3.3:443"},

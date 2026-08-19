@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aimuzov/proxray/internal/geo"
+	"github.com/aimuzov/proxray/internal/profile"
 )
 
 // geoMaxAge is how long cached .dat databases stay valid before connect
@@ -39,18 +40,26 @@ func geoDir() (string, error) {
 }
 
 // prepareGeo ensures the geo databases are present and points xray-core at them.
-// It is a no-op when bypass is "off". On failure it returns an actionable error
-// (the connect command aborts rather than silently falling back).
-func prepareGeo(bypass string) error {
-	if bypass == "off" {
+// They are needed when we route by region ourselves, and when a JSON
+// subscription config routes by geoip:/geosite: rules of its own. On failure it
+// returns an actionable error (the connect command aborts rather than silently
+// falling back).
+func prepareGeo(bypass string, node profile.Node) error {
+	reason := fmt.Sprintf("--bypass %s", bypass)
+	switch {
+	case bypass != "off":
+	case node.Config != nil && node.Config.UsesGeoAssets():
+		reason = "the subscription's routing rules"
+	default:
 		return nil
 	}
+
 	dir, err := geoDir()
 	if err != nil {
 		return err
 	}
 	if err := geo.EnsureAssets(dir, geoMaxAge); err != nil {
-		return fmt.Errorf("%w\ngeo databases are required for --bypass %s; retry with a network connection or run with --bypass off", err, bypass)
+		return fmt.Errorf("%w\ngeo databases are required for %s; retry with a network connection or run with --bypass off", err, reason)
 	}
 	return os.Setenv("XRAY_LOCATION_ASSET", dir)
 }

@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/aimuzov/proxray/internal/link"
 )
 
 // Subscription is the result of fetching and parsing a subscription URL,
@@ -20,7 +18,19 @@ type Subscription struct {
 	SupportURL     string
 	Announcement   string
 	UserInfo       *UserInfo
-	Servers        []*link.Server
+	Body           Body
+}
+
+// Nodes lists the subscription's entries, whichever format it arrived in.
+func (s *Subscription) Nodes() []Node {
+	out := make([]Node, 0, len(s.Body.Servers)+len(s.Body.Configs))
+	for _, srv := range s.Body.Servers {
+		out = append(out, NodeFromServer(srv))
+	}
+	for _, cfg := range s.Body.Configs {
+		out = append(out, NodeFromConfig(cfg))
+	}
+	return out
 }
 
 // DefaultUserAgent is sent when fetching a subscription unless overridden. Many
@@ -56,7 +66,7 @@ func Fetch(ctx context.Context, subURL, userAgent string) (*Subscription, error)
 		return nil, fmt.Errorf("read subscription body: %w", err)
 	}
 
-	servers, err := ParseBody(body)
+	parsed, err := ParseBody(body)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +75,7 @@ func Fetch(ctx context.Context, subURL, userAgent string) (*Subscription, error)
 		Title:        decodeHeaderText(resp.Header.Get("profile-title")),
 		SupportURL:   resp.Header.Get("support-url"),
 		Announcement: decodeHeaderText(resp.Header.Get("announce")),
-		Servers:      servers,
+		Body:         parsed,
 	}
 	if iv, err := strconv.Atoi(resp.Header.Get("profile-update-interval")); err == nil {
 		sub.UpdateInterval = iv

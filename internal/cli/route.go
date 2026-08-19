@@ -27,6 +27,9 @@ func newRouteCmd() *cobra.Command {
 				return err
 			}
 			fmt.Printf("Subscription %q: bypass = %s\n", sub.Name, bypass)
+			if len(sub.Configs) > 0 {
+				fmt.Println("This subscription ships its own routing rules, which are used instead.")
+			}
 			return nil
 		},
 	}

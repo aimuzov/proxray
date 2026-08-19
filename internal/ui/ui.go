@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
 
-	"github.com/aimuzov/proxray/internal/link"
+	"github.com/aimuzov/proxray/internal/profile"
 )
 
 var (
@@ -64,11 +65,21 @@ func Error(format string, a ...any) {
 	fmt.Fprintf(out, "%s %s\n", label, fmt.Sprintf(format, a...))
 }
 
-// Server prints a one-line description: "Server #1: Tag [proto] addr:port".
-func Server(idx int, s link.Server) {
-	tag := rnd.NewStyle().Bold(true).Render(s.Tag)
-	proto := rnd.NewStyle().Foreground(colorMuted).Render("[" + s.Protocol + "]")
-	fmt.Fprintf(out, "Server #%d: %s %s %s:%d\n", idx+1, tag, proto, s.Address, s.Port)
+// Node prints a one-line description: "Server #1: Tag [proto] addr:port". A
+// JSON subscription entry that pools several servers shows their count instead
+// of a single address.
+func Node(idx int, n profile.Node) {
+	protocols := strings.Join(n.Protocols, "+")
+	if protocols == "" {
+		protocols = "unknown"
+	}
+	tag := rnd.NewStyle().Bold(true).Render(n.Tag)
+	proto := rnd.NewStyle().Foreground(colorMuted).Render("[" + protocols + "]")
+	where := n.Address
+	if where == "" {
+		where = fmt.Sprintf("%d servers", n.EndpointCount())
+	}
+	fmt.Fprintf(out, "Server #%d: %s %s %s\n", idx+1, tag, proto, where)
 }
 
 // Endpoints prints the local proxy listeners as two compact lines with colored

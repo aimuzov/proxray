@@ -45,7 +45,7 @@ func TestFetch(t *testing.T) {
 	if sub.UserInfo == nil || sub.UserInfo.Total != 100 {
 		t.Errorf("UserInfo = %+v", sub.UserInfo)
 	}
-	if len(sub.Servers) != 2 {
-		t.Fatalf("got %d servers, want 2", len(sub.Servers))
+	if len(sub.Nodes()) != 2 {
+		t.Fatalf("got %d servers, want 2", len(sub.Nodes()))
 	}
 }

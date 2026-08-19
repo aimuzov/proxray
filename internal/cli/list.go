@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/aimuzov/proxray/internal/ui"
-	"github.com/aimuzov/proxray/internal/xray"
 )
 
 func newListCmd() *cobra.Command {
@@ -25,25 +24,41 @@ func newListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			servers := sub.Servers()
-			if len(servers) == 0 {
+			nodes := sub.Nodes()
+			if len(nodes) == 0 {
 				ui.Info("Subscription %q has no servers.", sub.Name)
 				return nil
 			}
-			rows := make([][]string, 0, len(servers))
-			for i, s := range servers {
-				note := s.Protocol
-				if !xray.Supported(s.Protocol) {
-					note += " (unsupported)"
-				}
-				rows = append(rows, []string{
-					fmt.Sprintf("%d", i+1),
-					note,
-					fmt.Sprintf("%s:%d", s.Address, s.Port),
-					s.Tag,
-				})
+			// Only JSON subscriptions describe their entries, so the note
+			// column appears only when there is something to put in it.
+			notes := false
+			for _, n := range nodes {
+				notes = notes || n.Note != ""
 			}
-			fmt.Print(ui.Table([]string{"#", "PROTOCOL", "ADDRESS", "TAG"}, rows))
+
+			rows := make([][]string, 0, len(nodes))
+			for i, n := range nodes {
+				protocol := protocolList(n)
+				if !supported(n) {
+					protocol += " (unsupported)"
+				}
+				row := []string{
+					fmt.Sprintf("%d", i+1),
+					protocol,
+					endpointSummary(n),
+					n.Tag,
+				}
+				if notes {
+					row = append(row, n.Note)
+				}
+				rows = append(rows, row)
+			}
+
+			header := []string{"#", "PROTOCOL", "ADDRESS", "TAG"}
+			if notes {
+				header = append(header, "NOTE")
+			}
+			fmt.Print(ui.Table(header, rows))
 			return nil
 		},
 	}
@@ -73,15 +88,11 @@ func newConfigCmd() *cobra.Command {
 			if len(args) > 0 {
 				selector = args[0]
 			}
-			srv, _, err := selectServer(sub.Servers(), selector)
+			node, _, err := selectNode(sub.Nodes(), selector)
 			if err != nil {
 				return err
 			}
-			cfg, err := xray.BuildConfig(srv, xray.Options{SocksPort: socksPort, HTTPPort: httpPort})
-			if err != nil {
-				return err
-			}
-			raw, err := cfg.JSON()
+			raw, err := buildRuntimeConfig(node, runtimeOptions{SocksPort: socksPort, HTTPPort: httpPort})
 			if err != nil {
 				return err
 			}

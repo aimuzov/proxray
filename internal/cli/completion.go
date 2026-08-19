@@ -3,16 +3,16 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/aimuzov/proxray/internal/link"
+	"github.com/aimuzov/proxray/internal/profile"
 	"github.com/aimuzov/proxray/internal/store"
 )
 
-// serverTags turns servers into shell completions, using the protocol as the
+// nodeTags turns nodes into shell completions, using the protocol as the
 // description shown next to each tag.
-func serverTags(servers []*link.Server) []cobra.Completion {
-	out := make([]cobra.Completion, 0, len(servers))
-	for _, s := range servers {
-		out = append(out, cobra.CompletionWithDesc(s.Tag, s.Protocol))
+func nodeTags(nodes []profile.Node) []cobra.Completion {
+	out := make([]cobra.Completion, 0, len(nodes))
+	for _, n := range nodes {
+		out = append(out, cobra.CompletionWithDesc(n.Tag, protocolList(n)))
 	}
 	return out
 }
@@ -85,5 +85,5 @@ func completeServerSelector(cmd *cobra.Command, args []string, toComplete string
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	return serverTags(sub.Servers()), cobra.ShellCompDirectiveNoFileComp
+	return nodeTags(sub.Nodes()), cobra.ShellCompDirectiveNoFileComp
 }

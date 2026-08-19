@@ -11,10 +11,9 @@ import (
 
 	"github.com/mattn/go-isatty"
 
-	"github.com/aimuzov/proxray/internal/link"
+	"github.com/aimuzov/proxray/internal/profile"
 	"github.com/aimuzov/proxray/internal/store"
 	"github.com/aimuzov/proxray/internal/ui"
-	"github.com/aimuzov/proxray/internal/xray"
 )
 
 // Default local proxy ports, shared with the connect command's flag defaults.
@@ -60,17 +59,17 @@ type serverChoice struct {
 	Label string
 }
 
-// supportedServerChoices returns choices for the servers xray-core can dial,
-// preserving each server's original index so a later selector stays correct.
-func supportedServerChoices(servers []*link.Server) []serverChoice {
-	out := make([]serverChoice, 0, len(servers))
-	for i, s := range servers {
-		if !xray.Supported(s.Protocol) {
+// supportedServerChoices returns choices for the nodes xray-core can dial,
+// preserving each node's original index so a later selector stays correct.
+func supportedServerChoices(nodes []profile.Node) []serverChoice {
+	out := make([]serverChoice, 0, len(nodes))
+	for i, n := range nodes {
+		if !supported(n) {
 			continue
 		}
 		out = append(out, serverChoice{
 			Index: i,
-			Label: fmt.Sprintf("%s  [%s]  %s:%d", s.Tag, s.Protocol, s.Address, s.Port),
+			Label: fmt.Sprintf("%s  [%s]  %s", n.Tag, protocolList(n), endpointSummary(n)),
 		})
 	}
 	return out
@@ -117,7 +116,7 @@ func interactiveFlow(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	srv, idx, err := pickServer(sub.Servers())
+	node, idx, err := pickServer(sub.Nodes())
 	if err != nil {
 		return err
 	}
@@ -142,15 +141,20 @@ func interactiveFlow(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := prepareGeo(bypass); err != nil {
+
+	ui.Node(idx, node)
+	if node.Config != nil && bypass != "off" {
+		ui.Info("Routing comes from the subscription config; the bypass setting is not applied.")
+		bypass = "off"
+	}
+	if err := prepareGeo(bypass, node); err != nil {
 		return err
 	}
 
-	ui.Server(idx, *srv)
 	if m.Mode == "tun" {
-		return runTun(ctx, srv, defaultSocksPort, bypass)
+		return runTun(ctx, node, defaultSocksPort, bypass)
 	}
-	return runProxy(ctx, srv, defaultSocksPort, defaultHTTPPort, m.SystemProxy, bypass)
+	return runProxy(ctx, node, defaultSocksPort, defaultHTTPPort, m.SystemProxy, bypass)
 }
 
 // reexecWithSudo replaces the current process with `sudo proxray connect ...`.
@@ -194,10 +198,10 @@ func pickSubscription(st *store.Store) (store.SubEntry, error) {
 	return subs[i], nil
 }
 
-func pickServer(servers []*link.Server) (*link.Server, int, error) {
-	choices := supportedServerChoices(servers)
+func pickServer(nodes []profile.Node) (profile.Node, int, error) {
+	choices := supportedServerChoices(nodes)
 	if len(choices) == 0 {
-		return nil, 0, fmt.Errorf("no servers that xray-core can dial in this subscription")
+		return profile.Node{}, 0, fmt.Errorf("no servers that xray-core can dial in this subscription")
 	}
 
 	labels := make([]string, len(choices))
@@ -207,10 +211,10 @@ func pickServer(servers []*link.Server) (*link.Server, int, error) {
 
 	i, err := fuzzySelect("Server", labels)
 	if err != nil {
-		return nil, 0, err
+		return profile.Node{}, 0, err
 	}
 	idx := choices[i].Index
-	return servers[idx], idx, nil
+	return nodes[idx], idx, nil
 }
 
 func pickMethod() (method, error) {

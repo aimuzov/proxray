@@ -1,0 +1,728 @@
+[
+  {
+    "remarks": "🇪🇺 Всё и сразу 🧠",
+    "meta": {
+      "serverDescription": "Автовыбор доступного сервера"
+    },
+    "dns": {
+      "queryStrategy": "UseIP",
+      "servers": [
+        "8.8.8.8",
+        "1.1.1.1"
+      ]
+    },
+    "inbounds": [
+      {
+        "tag": "socks",
+        "port": 10808,
+        "listen": "127.0.0.1",
+        "protocol": "socks",
+        "settings": {
+          "udp": true,
+          "auth": "noauth"
+        },
+        "sniffing": {
+          "enabled": true,
+          "destOverride": [
+            "http",
+            "tls",
+            "quic"
+          ]
+        }
+      },
+      {
+        "tag": "http",
+        "port": 10809,
+        "listen": "127.0.0.1",
+        "protocol": "http",
+        "settings": {},
+        "sniffing": {
+          "enabled": true,
+          "destOverride": [
+            "http",
+            "tls",
+            "quic"
+          ]
+        }
+      },
+      {
+        "tag": "entry-geo",
+        "port": 10802,
+        "listen": "127.0.0.1",
+        "protocol": "dokodemo-door",
+        "settings": {
+          "address": "127.0.0.1",
+          "network": "tcp,udp",
+          "port": 0
+        }
+      },
+      {
+        "tag": "entry-wl1",
+        "port": 10820,
+        "listen": "127.0.0.1",
+        "protocol": "dokodemo-door",
+        "settings": {
+          "address": "127.0.0.1",
+          "network": "tcp,udp",
+          "port": 0
+        }
+      },
+      {
+        "tag": "entry-tort",
+        "port": 10822,
+        "listen": "127.0.0.1",
+        "protocol": "dokodemo-door",
+        "settings": {
+          "address": "127.0.0.1",
+          "network": "tcp,udp",
+          "port": 0
+        }
+      }
+    ],
+    "outbounds": [
+      {
+        "tag": "node-0",
+        "protocol": "vless",
+        "settings": {
+          "vnext": [
+            {
+              "address": "node7.example.com",
+              "port": 443,
+              "users": [
+                {
+                  "id": "00000000-0000-0000-0000-000000000000",
+                  "encryption": "none",
+                  "flow": ""
+                }
+              ]
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "tcp",
+          "sockopt": {
+            "tcpKeepAliveIdle": 15,
+            "tcpKeepAliveInterval": 15
+          },
+          "security": "reality",
+          "realitySettings": {
+            "serverName": "intel.com",
+            "publicKey": "PUBLICKEYPUBLICKEYPUBLICKEYPUBLICKEYPUBLICKE",
+            "shortId": "0123abcd",
+            "fingerprint": "firefox",
+            "spiderX": "/"
+          }
+        }
+      },
+      {
+        "tag": "wl1-0",
+        "protocol": "vless",
+        "settings": {
+          "vnext": [
+            {
+              "address": "node10.example.com",
+              "port": 443,
+              "users": [
+                {
+                  "id": "00000000-0000-0000-0000-000000000000",
+                  "encryption": "none",
+                  "flow": ""
+                }
+              ]
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "xhttp",
+          "sockopt": {
+            "tcpKeepAliveIdle": 15,
+            "tcpKeepAliveInterval": 15
+          },
+          "security": "tls",
+          "tlsSettings": {
+            "serverName": "node10.example.com",
+            "fingerprint": "firefox",
+            "alpn": [
+              "h2",
+              "http/1.1"
+            ]
+          },
+          "xhttpSettings": {
+            "path": "/static-bucket/v1/",
+            "mode": "packet-up",
+            "host": "node10.example.com",
+            "extra": {
+              "seqKey": "offset",
+              "sessionKey": "media_sid",
+              "noSSEHeader": true,
+              "seqPlacement": "query",
+              "sessionIDKey": "media_sid",
+              "uplinkDataKey": "X-Playback-Token",
+              "hKeepAlivePeriod": 30,
+              "hMaxRequestTimes": "600-900",
+              "hMaxReusableSecs": 1800,
+              "sessionPlacement": "cookie",
+              "uplinkHTTPMethod": "GET",
+              "xPaddingObfsMode": true,
+              "scMaxBufferedPosts": 12,
+              "scMaxEachPostBytes": "131072-262144",
+              "sessionIDPlacement": "cookie",
+              "uplinkDataPlacement": "body",
+              "scMaxConcurrentPosts": 1,
+              "scMinPostsIntervalMs": "5-10",
+              "scStreamUpServerSecs": "1-2"
+            }
+          }
+        }
+      },
+      {
+        "tag": "tort-0",
+        "protocol": "vless",
+        "settings": {
+          "vnext": [
+            {
+              "address": "node9.example.com",
+              "port": 443,
+              "users": [
+                {
+                  "id": "00000000-0000-0000-0000-000000000000",
+                  "encryption": "none",
+                  "flow": ""
+                }
+              ]
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "xhttp",
+          "xhttpSettings": {
+            "mode": "packet-up",
+            "host": "node9.example.com",
+            "path": "/api/v3/streams/stream.ts",
+            "extra": {
+              "path": "",
+              "seqKey": "",
+              "sessionKey": "sid",
+              "noSSEHeader": true,
+              "noGRPCHeader": true,
+              "seqPlacement": "path",
+              "sessionIDKey": "sid",
+              "xPaddingBytes": "5-100",
+              "sessionIDTable": "0123456789abcdef",
+              "xPaddingHeader": "X-Api-Key",
+              "xPaddingMethod": "tokenish",
+              "sessionIDLength": "5-15",
+              "hMaxRequestTimes": "600-900",
+              "hMaxReusableSecs": 1800,
+              "sessionPlacement": "query",
+              "uplinkHTTPMethod": "GET",
+              "xPaddingObfsMode": true,
+              "xPaddingPlacement": "header",
+              "scMaxBufferedPosts": 12,
+              "scMaxEachPostBytes": "131072-262144",
+              "sessionIDPlacement": "query",
+              "uplinkDataPlacement": "body",
+              "scMinPostsIntervalMs": "2-5",
+              "serverMaxHeaderBytes": 32768
+            }
+          },
+          "security": "tls",
+          "tlsSettings": {
+            "serverName": "node9.example.com",
+            "fingerprint": "firefox",
+            "alpn": [
+              "h2",
+              "http/1.1"
+            ]
+          }
+        }
+      },
+      {
+        "tag": "direct",
+        "protocol": "freedom"
+      },
+      {
+        "tag": "block",
+        "protocol": "blackhole"
+      },
+      {
+        "tag": "loop_to_geo",
+        "protocol": "loopback",
+        "settings": {
+          "inboundTag": "entry-geo"
+        }
+      },
+      {
+        "tag": "loop_to_wl1",
+        "protocol": "loopback",
+        "settings": {
+          "inboundTag": "entry-wl1"
+        }
+      },
+      {
+        "tag": "loop_to_tort",
+        "protocol": "loopback",
+        "settings": {
+          "inboundTag": "entry-tort"
+        }
+      }
+    ],
+    "observatory": {
+      "enableConcurrency": true,
+      "probeInterval": "20s",
+      "probeUrl": "http://www.gstatic.com/generate_204",
+      "subjectSelector": [
+        "node-0",
+        "wl1-0",
+        "tort-0",
+        "direct"
+      ]
+    },
+    "routing": {
+      "domainMatcher": "hybrid",
+      "domainStrategy": "IPIfNonMatch",
+      "balancers": [
+        {
+          "tag": "lb_geo",
+          "selector": [
+            "node-0"
+          ],
+          "strategy": {
+            "type": "leastLoad",
+            "settings": {
+              "maxRTT": "2s"
+            }
+          },
+          "fallbackTag": "loop_to_wl1"
+        },
+        {
+          "tag": "lb_ru",
+          "selector": [
+            "direct"
+          ],
+          "strategy": {
+            "type": "leastLoad",
+            "settings": {
+              "maxRTT": "2s"
+            }
+          },
+          "fallbackTag": "loop_to_wl1"
+        },
+        {
+          "tag": "lb_wl1",
+          "selector": [
+            "wl1-0"
+          ],
+          "strategy": {
+            "type": "leastLoad",
+            "settings": {
+              "maxRTT": "5s"
+            }
+          },
+          "fallbackTag": "loop_to_wl2"
+        },
+        {
+          "tag": "lb_tort",
+          "selector": [
+            "tort-0"
+          ],
+          "strategy": {
+            "type": "leastLoad",
+            "settings": {
+              "maxRTT": "5s"
+            }
+          },
+          "fallbackTag": "block"
+        }
+      ],
+      "rules": [
+        {
+          "type": "field",
+          "ip": [
+            "10.0.0.0/8",
+            "172.16.0.0/12",
+            "192.168.0.0/16",
+            "169.254.0.0/16",
+            "224.0.0.0/4",
+            "255.255.255.255/32",
+            "fe80::/10",
+            "fc00::/7",
+            "ff00::/8"
+          ],
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",
+          "domain": [
+            "regexp:\\.ru$",
+            "regexp:\\.su$"
+          ],
+          "balancerTag": "lb_ru",
+          "inboundTag": [
+            "socks",
+            "http"
+          ]
+        },
+        {
+          "type": "field",
+          "domain": [
+            "full:intranet.example.com"
+          ],
+          "balancerTag": "lb_ru",
+          "inboundTag": [
+            "socks",
+            "http"
+          ]
+        },
+        {
+          "type": "field",
+          "ip": [
+            "176.213.0.0/16",
+            "109.194.0.0/16"
+          ],
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",
+          "domain": [
+            "domain:gemini.google.com",
+            "domain:aistudio.google.com"
+          ],
+          "network": "udp",
+          "port": 443,
+          "outboundTag": "block"
+        },
+        {
+          "type": "field",
+          "balancerTag": "lb_geo",
+          "inboundTag": [
+            "socks",
+            "http"
+          ],
+          "network": "tcp,udp"
+        },
+        {
+          "type": "field",
+          "balancerTag": "lb_wl1",
+          "inboundTag": [
+            "entry-wl1"
+          ]
+        },
+        {
+          "type": "field",
+          "balancerTag": "lb_tort",
+          "inboundTag": [
+            "entry-tort"
+          ]
+        },
+        {
+          "type": "field",
+          "balancerTag": "lb_geo",
+          "inboundTag": [
+            "entry-geo"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "remarks": "🇵🇱 Польша 🦫",
+    "meta": {
+      "serverDescription": "Основной сервер"
+    },
+    "dns": {
+      "queryStrategy": "UseIP",
+      "servers": [
+        "8.8.8.8",
+        "1.1.1.1"
+      ]
+    },
+    "inbounds": [
+      {
+        "tag": "socks",
+        "port": 10808,
+        "listen": "127.0.0.1",
+        "protocol": "socks",
+        "settings": {
+          "udp": true,
+          "auth": "noauth"
+        },
+        "sniffing": {
+          "enabled": true,
+          "destOverride": [
+            "http",
+            "tls",
+            "quic"
+          ]
+        }
+      },
+      {
+        "tag": "http",
+        "port": 10809,
+        "listen": "127.0.0.1",
+        "protocol": "http",
+        "settings": {},
+        "sniffing": {
+          "enabled": true,
+          "destOverride": [
+            "http",
+            "tls",
+            "quic"
+          ]
+        }
+      }
+    ],
+    "outbounds": [
+      {
+        "tag": "proxy",
+        "protocol": "vless",
+        "settings": {
+          "vnext": [
+            {
+              "address": "node7.example.com",
+              "port": 443,
+              "users": [
+                {
+                  "id": "00000000-0000-0000-0000-000000000000",
+                  "encryption": "none",
+                  "flow": ""
+                }
+              ]
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "tcp",
+          "sockopt": {
+            "tcpKeepAliveIdle": 15,
+            "tcpKeepAliveInterval": 15
+          },
+          "security": "reality",
+          "realitySettings": {
+            "serverName": "intel.com",
+            "publicKey": "PUBLICKEYPUBLICKEYPUBLICKEYPUBLICKEYPUBLICKE",
+            "shortId": "0123abcd",
+            "fingerprint": "firefox",
+            "spiderX": "/"
+          }
+        }
+      },
+      {
+        "tag": "direct",
+        "protocol": "freedom"
+      },
+      {
+        "tag": "block",
+        "protocol": "blackhole"
+      }
+    ],
+    "routing": {
+      "domainMatcher": "hybrid",
+      "domainStrategy": "IPIfNonMatch",
+      "rules": [
+        {
+          "type": "field",
+          "ip": [
+            "10.0.0.0/8",
+            "172.16.0.0/12",
+            "192.168.0.0/16",
+            "169.254.0.0/16",
+            "224.0.0.0/4",
+            "255.255.255.255/32",
+            "fe80::/10",
+            "fc00::/7",
+            "ff00::/8"
+          ],
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",
+          "domain": [
+            "regexp:\\.ru$",
+            "regexp:\\.su$"
+          ],
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",
+          "domain": [
+            "full:intranet.example.com"
+          ],
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",
+          "ip": [
+            "176.213.0.0/16",
+            "109.194.0.0/16"
+          ],
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",
+          "domain": [
+            "domain:gemini.google.com",
+            "domain:aistudio.google.com"
+          ],
+          "network": "udp",
+          "port": 443,
+          "outboundTag": "block"
+        },
+        {
+          "type": "field",
+          "inboundTag": [
+            "socks",
+            "http"
+          ],
+          "outboundTag": "proxy",
+          "network": "tcp,udp"
+        }
+      ]
+    }
+  },
+  {
+    "remarks": "🇩🇪 Турбо ⚡ Германия 🍺",
+    "meta": {
+      "serverDescription": "Скоростной сервер"
+    },
+    "dns": {
+      "queryStrategy": "UseIP",
+      "servers": [
+        "8.8.8.8",
+        "1.1.1.1"
+      ]
+    },
+    "inbounds": [
+      {
+        "tag": "socks",
+        "port": 10808,
+        "listen": "127.0.0.1",
+        "protocol": "socks",
+        "settings": {
+          "udp": true,
+          "auth": "noauth"
+        },
+        "sniffing": {
+          "enabled": true,
+          "destOverride": [
+            "http",
+            "tls",
+            "quic"
+          ]
+        }
+      },
+      {
+        "tag": "http",
+        "port": 10809,
+        "listen": "127.0.0.1",
+        "protocol": "http",
+        "settings": {},
+        "sniffing": {
+          "enabled": true,
+          "destOverride": [
+            "http",
+            "tls",
+            "quic"
+          ]
+        }
+      }
+    ],
+    "outbounds": [
+      {
+        "tag": "proxy",
+        "protocol": "hysteria",
+        "settings": {
+          "address": "node5.example.com",
+          "port": 8443,
+          "version": 2
+        },
+        "streamSettings": {
+          "network": "hysteria",
+          "hysteriaSettings": {
+            "version": 2,
+            "auth": "00000000-0000-0000-0000-000000000000"
+          },
+          "security": "tls",
+          "tlsSettings": {
+            "serverName": "node5.example.com",
+            "fingerprint": "firefox",
+            "alpn": [
+              "h3"
+            ]
+          }
+        }
+      },
+      {
+        "tag": "direct",
+        "protocol": "freedom"
+      },
+      {
+        "tag": "block",
+        "protocol": "blackhole"
+      }
+    ],
+    "routing": {
+      "domainMatcher": "hybrid",
+      "domainStrategy": "IPIfNonMatch",
+      "rules": [
+        {
+          "type": "field",
+          "ip": [
+            "10.0.0.0/8",
+            "172.16.0.0/12",
+            "192.168.0.0/16",
+            "169.254.0.0/16",
+            "224.0.0.0/4",
+            "255.255.255.255/32",
+            "fe80::/10",
+            "fc00::/7",
+            "ff00::/8"
+          ],
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",
+          "domain": [
+            "regexp:\\.ru$",
+            "regexp:\\.su$"
+          ],
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",
+          "domain": [
+            "full:intranet.example.com"
+          ],
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",
+          "ip": [
+            "176.213.0.0/16",
+            "109.194.0.0/16"
+          ],
+          "outboundTag": "direct"
+        },
+        {
+          "type": "field",
+          "domain": [
+            "domain:gemini.google.com",
+            "domain:aistudio.google.com"
+          ],
+          "network": "udp",
+          "port": 443,
+          "outboundTag": "block"
+        },
+        {
+          "type": "field",
+          "inboundTag": [
+            "socks",
+            "http"
+          ],
+          "outboundTag": "proxy",
+          "network": "tcp,udp"
+        }
+      ]
+    }
+  }
+]
