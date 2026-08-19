@@ -9,6 +9,11 @@ import (
 
 	// Register all inbound/outbound/transport/app implementations.
 	_ "github.com/xtls/xray-core/main/distro/all"
+
+	// Hysteria2 ships with xray-core but is left out of distro/all, so it is
+	// registered here: subscriptions routinely include hysteria servers.
+	_ "github.com/xtls/xray-core/proxy/hysteria"
+	_ "github.com/xtls/xray-core/transport/internet/hysteria"
 )
 
 // Instance is a running embedded xray-core instance.

@@ -169,10 +169,42 @@ func TestBuildConfigGRPCReality(t *testing.T) {
 	}
 }
 
-func TestBuildConfigRejectsHysteria2(t *testing.T) {
-	s := &link.Server{Protocol: "hysteria2", Address: "h", Port: 443, Password: "p"}
+func TestBuildConfigHysteria2(t *testing.T) {
+	s := &link.Server{Protocol: "hysteria2", Address: "h", Port: 443, Password: "p", SNI: "sni.com"}
+	m := buildMap(t, s, Options{SocksPort: 10808})
+
+	// xray spells Hysteria2 as protocol "hysteria" with version 2, and keeps the
+	// credentials in the transport.
+	if v := get(t, m, "outbounds.0.protocol"); v != "hysteria" {
+		t.Errorf("protocol = %v", v)
+	}
+	if v := get(t, m, "outbounds.0.settings.version"); v != float64(2) {
+		t.Errorf("version = %v", v)
+	}
+	if v := get(t, m, "outbounds.0.settings.address"); v != "h" {
+		t.Errorf("address = %v", v)
+	}
+	if v := get(t, m, "outbounds.0.streamSettings.network"); v != "hysteria" {
+		t.Errorf("network = %v", v)
+	}
+	if v := get(t, m, "outbounds.0.streamSettings.hysteriaSettings.auth"); v != "p" {
+		t.Errorf("auth = %v", v)
+	}
+	if v := get(t, m, "outbounds.0.streamSettings.tlsSettings.serverName"); v != "sni.com" {
+		t.Errorf("serverName = %v", v)
+	}
+	if v := get(t, m, "outbounds.0.streamSettings.tlsSettings.alpn.0"); v != "h3" {
+		t.Errorf("alpn = %v, want h3 by default", v)
+	}
+}
+
+func TestBuildConfigRejectsHysteria2Obfs(t *testing.T) {
+	s := &link.Server{Protocol: "hysteria2", Address: "h", Port: 443, Password: "p", Obfs: "salamander"}
 	if _, err := BuildConfig(s, Options{SocksPort: 10808}); err == nil {
-		t.Fatal("expected error for hysteria2 (unsupported by xray-core)")
+		t.Fatal("expected error: xray-core has no hysteria2 obfuscation")
+	}
+	if SupportedServer(s) {
+		t.Error("SupportedServer = true for an obfuscated hysteria2 server")
 	}
 }
 

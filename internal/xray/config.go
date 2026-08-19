@@ -82,15 +82,23 @@ func ruBypassRouting() *RoutingConfig {
 }
 
 type StreamSettings struct {
-	Network         string           `json:"network,omitempty"`
-	Security        string           `json:"security,omitempty"`
-	TLSSettings     *TLSSettings     `json:"tlsSettings,omitempty"`
-	RealitySettings *RealitySettings `json:"realitySettings,omitempty"`
-	WSSettings      *WSSettings      `json:"wsSettings,omitempty"`
-	GRPCSettings    *GRPCSettings    `json:"grpcSettings,omitempty"`
-	HTTPSettings    *HTTPSettings    `json:"httpSettings,omitempty"`
-	TCPSettings     *TCPSettings     `json:"tcpSettings,omitempty"`
-	Sockopt         *Sockopt         `json:"sockopt,omitempty"`
+	Network          string            `json:"network,omitempty"`
+	Security         string            `json:"security,omitempty"`
+	TLSSettings      *TLSSettings      `json:"tlsSettings,omitempty"`
+	RealitySettings  *RealitySettings  `json:"realitySettings,omitempty"`
+	WSSettings       *WSSettings       `json:"wsSettings,omitempty"`
+	GRPCSettings     *GRPCSettings     `json:"grpcSettings,omitempty"`
+	HTTPSettings     *HTTPSettings     `json:"httpSettings,omitempty"`
+	TCPSettings      *TCPSettings      `json:"tcpSettings,omitempty"`
+	HysteriaSettings *HysteriaSettings `json:"hysteriaSettings,omitempty"`
+	Sockopt          *Sockopt          `json:"sockopt,omitempty"`
+}
+
+// HysteriaSettings carries the Hysteria2 credentials, which xray reads from the
+// transport rather than from the outbound settings.
+type HysteriaSettings struct {
+	Version int    `json:"version"`
+	Auth    string `json:"auth,omitempty"`
 }
 
 type Sockopt struct {
