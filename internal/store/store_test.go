@@ -55,6 +55,45 @@ func TestUpsertPersistsAndReloads(t *testing.T) {
 	}
 }
 
+func TestHWIDRoundTrips(t *testing.T) {
+	dir := t.TempDir()
+	st, err := Open(dir)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	if got := st.HWID(); got != "" {
+		t.Fatalf("fresh store HWID = %q, want empty", got)
+	}
+	if err := st.SetHWID("abcdef0123456789"); err != nil {
+		t.Fatalf("SetHWID: %v", err)
+	}
+	if err := st.Upsert(SubEntry{Name: "main", URL: "u", NoHWID: true}); err != nil {
+		t.Fatalf("Upsert: %v", err)
+	}
+
+	st2, err := Open(dir)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	if got := st2.HWID(); got != "abcdef0123456789" {
+		t.Errorf("reloaded HWID = %q", got)
+	}
+	if entry, _ := st2.Find("main"); !entry.NoHWID {
+		t.Error("NoHWID did not survive the reload")
+	}
+
+	if err := st2.SetHWID(""); err != nil {
+		t.Fatalf("SetHWID(\"\"): %v", err)
+	}
+	st3, err := Open(dir)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	if got := st3.HWID(); got != "" {
+		t.Errorf("HWID after clearing = %q, want empty", got)
+	}
+}
+
 func TestSubEntryNodesFromConfigs(t *testing.T) {
 	entry := SubEntry{
 		Name: "json",

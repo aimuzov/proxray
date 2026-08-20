@@ -26,6 +26,7 @@ type SubEntry struct {
 	Links          []string          `json:"links,omitempty"`
 	Configs        []json.RawMessage `json:"configs,omitempty"`
 	Bypass         string            `json:"bypass,omitempty"`
+	NoHWID         bool              `json:"noHwid,omitempty"`
 }
 
 // Nodes re-parses the cached entries into selectable nodes, skipping any that
@@ -49,6 +50,7 @@ func (e SubEntry) Nodes() []profile.Node {
 
 type state struct {
 	Active        string     `json:"active,omitempty"`
+	HWID          string     `json:"hwid,omitempty"`
 	Subscriptions []SubEntry `json:"subscriptions,omitempty"`
 }
 
@@ -172,6 +174,16 @@ func (s *Store) Remove(name string) error {
 
 // Active returns the name of the active subscription, or "".
 func (s *Store) Active() string { return s.state.Active }
+
+// HWID returns the stored device id sent to panels that limit devices, or "".
+func (s *Store) HWID() string { return s.state.HWID }
+
+// SetHWID stores the device id; "" clears it so the next fetch derives a new
+// one from the machine.
+func (s *Store) SetHWID(id string) error {
+	s.state.HWID = id
+	return s.save()
+}
 
 // SetActive marks a subscription as active.
 func (s *Store) SetActive(name string) error {
