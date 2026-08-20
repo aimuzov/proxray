@@ -50,6 +50,7 @@ func newRootCmd(version string) *cobra.Command {
 	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable verbose (debug) logging")
 	root.AddCommand(
 		newSubCmd(),
+		newHWIDCmd(),
 		newListCmd(),
 		newConnectCmd(),
 		newConfigCmd(),

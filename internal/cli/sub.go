@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/aimuzov/proxray/internal/device"
 	"github.com/aimuzov/proxray/internal/profile"
 	"github.com/aimuzov/proxray/internal/store"
 	"github.com/aimuzov/proxray/internal/ui"
@@ -24,6 +25,7 @@ func newSubCmd() *cobra.Command {
 
 func subAddCmd() *cobra.Command {
 	var name, userAgent string
+	var noHWID bool
 	cmd := &cobra.Command{
 		Use:   "add <url>",
 		Short: "Add and fetch a subscription",
@@ -33,7 +35,12 @@ func subAddCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			entry, err := fetchEntry(cmd.Context(), args[0], name, userAgent)
+			entry, err := fetchEntry(cmd.Context(), st, subRequest{
+				URL:       args[0],
+				Name:      name,
+				UserAgent: userAgent,
+				NoHWID:    noHWID,
+			})
 			if err != nil {
 				return err
 			}
@@ -49,6 +56,7 @@ func subAddCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&name, "name", "", "name for the subscription (default: derived from title/host)")
 	cmd.Flags().StringVar(&userAgent, "ua", profile.DefaultUserAgent, "User-Agent sent when fetching")
+	cmd.Flags().BoolVar(&noHWID, "no-hwid", false, "do not identify this machine to the panel (see 'proxray hwid')")
 	return cmd
 }
 
@@ -71,7 +79,12 @@ func subUpdateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			entry, err := fetchEntry(cmd.Context(), sub.URL, sub.Name, sub.UserAgent)
+			entry, err := fetchEntry(cmd.Context(), st, subRequest{
+				URL:       sub.URL,
+				Name:      sub.Name,
+				UserAgent: sub.UserAgent,
+				NoHWID:    sub.NoHWID,
+			})
 			if err != nil {
 				return err
 			}
@@ -171,19 +184,51 @@ func subUseCmd() *cobra.Command {
 	return cmd
 }
 
+// subRequest is what a fetch needs to know up front; the rest of the entry
+// comes out of the response.
+type subRequest struct {
+	URL       string
+	Name      string
+	UserAgent string
+	NoHWID    bool
+}
+
 // fetchEntry downloads a subscription and builds a store entry from it.
-func fetchEntry(ctx context.Context, rawURL, name, userAgent string) (store.SubEntry, error) {
-	sub, err := profile.Fetch(ctx, rawURL, userAgent)
+func fetchEntry(ctx context.Context, st *store.Store, req subRequest) (store.SubEntry, error) {
+	opts := profile.FetchOptions{UserAgent: req.UserAgent}
+	if !req.NoHWID {
+		hwid, err := ensureHWID(st)
+		if err != nil {
+			return store.SubEntry{}, err
+		}
+		info := device.Detect()
+		opts.HWID = hwid
+		opts.DeviceOS, opts.OSVersion, opts.DeviceModel = info.OS, info.Version, info.Model
+	}
+
+	sub, err := profile.Fetch(ctx, req.URL, opts)
 	if err != nil {
 		return store.SubEntry{}, err
 	}
+	// Report the id whenever it was sent, not only when the panel says it
+	// enforces a limit: most panels only read the header and answer nothing, and
+	// without this line there is no way to tell from the CLI that it went at all.
+	if opts.HWID != "" {
+		if sub.HWIDActive {
+			ui.Info("Sent device id %s; the panel enforces a device limit.", opts.HWID)
+		} else {
+			ui.Info("Sent device id %s (run with -v to see what the panel answered).", opts.HWID)
+		}
+	}
+	name := req.Name
 	if name == "" {
-		name = defaultName(sub.Title, rawURL)
+		name = defaultName(sub.Title, req.URL)
 	}
 	entry := store.SubEntry{
 		Name:           name,
-		URL:            rawURL,
-		UserAgent:      userAgent,
+		URL:            req.URL,
+		UserAgent:      req.UserAgent,
+		NoHWID:         req.NoHWID,
 		Title:          sub.Title,
 		SupportURL:     sub.SupportURL,
 		UpdateInterval: sub.UpdateInterval,
