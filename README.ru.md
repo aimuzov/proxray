@@ -24,6 +24,11 @@
   `profile-update-interval`, `support-url`. Запросы уходят с
   `User-Agent: Happ/1.0`, чтобы панель вернула формат, который ждёт HAPP
   (переопределяется флагом `--ua`).
+- **Лимит устройств (HWID)**: панели, которые считают устройства — *HWID Device
+  Limit* у Remnawave и совместимые — отвечают `404` клиенту, который себя не
+  представил. proxray шлёт `x-hwid` вместе с `x-device-os` / `x-ver-os` /
+  `x-device-model`, а сам идентификатор выводит из машины, поэтому повторное
+  добавление подписки не съедает ещё один слот. Подробности — `proxray hwid`.
 - **JSON-подписка исполняется так, как её написала панель**: правила
   маршрутизации, балансировщики и автопереключение по observatory сохраняются
   без изменений, своими остаются только порты прослушивания и уровень логов.
@@ -47,7 +52,7 @@
 
 ```
 subscription URL
-      │  profile.Fetch (User-Agent: Happ/1.0)
+      │  profile.Fetch (User-Agent: Happ/1.0, x-hwid: id устройства)
       ▼
 base64-список ссылок ──► link.Parse ──► []link.Server
                                             │ xray.BuildConfig
@@ -118,6 +123,30 @@ proxray sub update [name]                                      # обновит�
 proxray sub use <name>                                         # сделать подписку активной
 proxray sub rm <name>                                          # удалить
 ```
+
+### Лимит устройств (HWID)
+
+Панели с лимитом устройств считают их по заголовку `x-hwid`. proxray выводит
+идентификатор из машины при первом обращении и сохраняет его, поэтому при
+обновлениях и повторном добавлении подписки он остаётся прежним:
+
+```sh
+proxray hwid                     # показать id и заголовки устройства, которые уйдут с ним
+proxray hwid set <id>            # задать свой id (10-64 символа из a-zA-Z0-9=-)
+proxray hwid reset               # забыть сохранённый id и вывести заново
+proxray hwid reset --random      # выглядеть другим устройством на той же машине
+proxray sub add <url> --no-hwid  # не представляться панели вовсе
+```
+
+`sub add` и `sub update` печатают отправленный id. Большинство панелей заголовок
+только читают и ничего не отвечают, поэтому `-v` показывает обе половины обмена:
+
+```
+DEBU subscription request  host=panel.example user-agent=Happ/1.0 x-hwid=64ed… x-device-os=macOS …
+DEBU subscription response status=200 hwid-headers="none (panel ignores the device id)"
+```
+
+Путь запроса в лог не попадает — в нём токен подписки.
 
 `sub list` показывает трафик и срок из заголовков подписки:
 

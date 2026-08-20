@@ -24,6 +24,11 @@ binaries required.
   `profile-update-interval`, `support-url`. Requests are sent with
   `User-Agent: Happ/1.0` so panels return the format HAPP expects (overridable
   with `--ua`).
+- **Device limit (HWID)**: panels that count devices — Remnawave's *HWID Device
+  Limit* and compatible ones — answer `404` to clients that do not identify
+  themselves. proxray sends `x-hwid` plus `x-device-os` / `x-ver-os` /
+  `x-device-model`, deriving a stable id from the machine so re-adding a
+  subscription does not eat another device slot. See `proxray hwid`.
 - **JSON subscriptions run as the panel wrote them**: routing rules, balancers
   and observatory-based auto-switching are kept verbatim, and only the listen
   ports and log level are ours. Since the panel already decides what goes
@@ -46,7 +51,7 @@ binaries required.
 
 ```
 subscription URL
-      │  profile.Fetch (User-Agent: Happ/1.0)
+      │  profile.Fetch (User-Agent: Happ/1.0, x-hwid: device id)
       ▼
 base64 list of links ──► link.Parse ──► []link.Server
                                             │ xray.BuildConfig
@@ -117,6 +122,30 @@ proxray sub update [name]                                      # re-fetch (defau
 proxray sub use <name>                                         # set the active subscription
 proxray sub rm <name>                                          # remove
 ```
+
+### Device limit (HWID)
+
+Panels with a device limit count devices by the `x-hwid` header. proxray derives
+one from the machine on first use and stores it, so it stays the same across
+updates and re-adds:
+
+```sh
+proxray hwid                     # show the id and the device headers that go with it
+proxray hwid set <id>            # use a specific id (10-64 chars of a-zA-Z0-9=-)
+proxray hwid reset               # forget the stored id and derive it again
+proxray hwid reset --random      # look like a different device on the same machine
+proxray sub add <url> --no-hwid  # do not identify this machine at all
+```
+
+`sub add` and `sub update` print the id they sent. Most panels only read the
+header and answer nothing, so `-v` spells out both halves of the exchange:
+
+```
+DEBU subscription request  host=panel.example user-agent=Happ/1.0 x-hwid=64ed… x-device-os=macOS …
+DEBU subscription response status=200 hwid-headers="none (panel ignores the device id)"
+```
+
+The request path is never logged — it carries the subscription token.
 
 `sub list` shows traffic and expiry from the subscription headers:
 
