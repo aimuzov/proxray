@@ -37,7 +37,15 @@ func parseIPRouteGet(output string) routeHop {
 }
 
 func nextHop(dest string) (routeHop, error) {
-	out, err := exec.Command("ip", "route", "get", dest).Output()
+	return nextHopMark(dest, "")
+}
+
+func nextHopMark(dest, mark string) (routeHop, error) {
+	args := []string{"route", "get", dest}
+	if mark != "" {
+		args = append(args, "mark", mark)
+	}
+	out, err := exec.Command("ip", args...).Output()
 	if err != nil {
 		return routeHop{}, fmt.Errorf("ip route get %s: %w", dest, err)
 	}
@@ -98,6 +106,22 @@ func wireguardEndpoints(iface string) ([]string, error) {
 		return nil, fmt.Errorf("interface %s is WireGuard but its endpoints could not be read (is wireguard-tools installed?): %w: %s", iface, err, strings.TrimSpace(string(out)))
 	}
 	return parseWGEndpoints(string(out)), nil
+}
+
+func parseWGFwmark(output string) string {
+	s := strings.TrimSpace(output)
+	if s == "" || s == "off" || s == "0" {
+		return ""
+	}
+	return s
+}
+
+func wireguardFwmark(iface string) (string, error) {
+	out, err := exec.Command("wg", "show", iface, "fwmark").CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("wg show %s fwmark: %w: %s", iface, err, strings.TrimSpace(string(out)))
+	}
+	return parseWGFwmark(string(out)), nil
 }
 
 func run(name string, args ...string) error {

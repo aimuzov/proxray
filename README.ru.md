@@ -280,17 +280,19 @@ proxray system-proxy off        # аварийный сброс системно
   правила самой панели.
 - **Режим TUN работает на macOS и Linux.** `--system-proxy` — только macOS.
 - **Блокировка IPv6 в режиме TUN — best-effort** (путь прокси — IPv4). Если маршруты в loopback
-  встали, IPv6-only ресурсы недоступны. Если нет, proxray пишет `could not block IPv6`,
-  и этот трафик может обойти туннель.
+  встали, IPv6-only ресурсы недоступны, кроме адресов под более точным уже существующим
+  IPv6-маршрутом (например, VPN `2000::/3`): такой трафик обходит туннель без предупреждения.
+  Если маршруты не встали, proxray пишет `could not block IPv6`, и этот трафик может обойти туннель.
 - `connect` работает в **foreground**; фонового демона пока нет.
 - `kill -9` пропускает очистку: системный прокси останется включённым
   (`sudo proxray system-proxy off`). На macOS остаются IPv6-блок-маршруты
   (`sudo route -n delete -inet6 -net ::/1; sudo route -n delete -inet6 -net
 8000::/1`). На Linux: `sudo ip route del 0.0.0.0/1; sudo ip route del 128.0.0.0/1; sudo ip -6 route del ::/1; sudo ip -6 route del 8000::/1`.
-  Кроме этого остаются host-маршруты на IP сервера прокси (и, если сервер был доступен через WireGuard,
-  на endpoint этого туннеля) через исходный шлюз. В `ip route show` найдите `/32` с шлюзом
-  физического роутера, убедитесь, что адрес — это сервер сессии, и удалите его:
-  `sudo ip route del <ip>` (для IPv6 — `sudo ip -6 route del <ip>`).
+  Кроме этого остаются host-маршруты на IP сервера прокси и, если сервер был доступен через WireGuard,
+  на endpoint этого туннеля. Next hop — тот, что был на момент подключения: физический шлюз,
+  on-link интерфейс или VPN-интерфейс, например WireGuard. В `ip route show` найдите IPv4 `/32`
+  с адресом сервера или endpoint; в `ip -6 route show` — IPv6 `/128`. Затем
+  `sudo ip route del <ip>` или `sudo ip -6 route del <ip>`.
   Обычный `Ctrl+C` всё убирает сам.
 
 ## Структура проекта

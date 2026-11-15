@@ -283,19 +283,22 @@ overridable with the global `--home` flag.
   from the panel's own rules.
 - **TUN mode works on macOS and Linux.** `--system-proxy` is macOS-only.
 - **IPv6 blocking in TUN mode is best-effort** (the proxy path is IPv4). When
-  the loopback routes install, IPv6-only destinations become unreachable. When
-  they do not, proxray logs `could not block IPv6` and that traffic may bypass
-  the tunnel.
+  the loopback routes install, IPv6-only destinations become unreachable,
+  except where a more-specific IPv6 route already exists (for example a VPN
+  `2000::/3`); that traffic bypasses the tunnel with no warning. When the
+  loopback routes cannot be installed, proxray logs `could not block IPv6` and
+  IPv6 traffic may bypass the tunnel.
 - `connect` runs in the **foreground**; there is no background daemon yet.
 - A `kill -9` skips cleanup: a system proxy stays set (`sudo proxray system-proxy
 off`). On macOS, TUN IPv6-block routes remain (`sudo route -n delete -inet6 -net
 ::/1; sudo route -n delete -inet6 -net 8000::/1`). On Linux, remove them with
 `sudo ip route del 0.0.0.0/1; sudo ip route del 128.0.0.0/1; sudo ip -6 route del ::/1; sudo ip -6 route del 8000::/1`.
-Linux also leaves a host route for each proxy server IP (and, when the server
-was reached through WireGuard, for that tunnel's endpoint) via the original
-gateway. Check `ip route show` for a `/32` whose gateway is your physical
-router, confirm the address is the server you connected to, then
-`sudo ip route del <that-ip>` (use `ip -6 route del` for an IPv6 endpoint).
+Linux also leaves a host route for each proxy server IP and, when the server
+was reached through WireGuard, for that tunnel's endpoint. The next hop is
+whatever was in use at connect time: a physical gateway, an on-link interface,
+or a VPN interface such as WireGuard. In `ip route show`, match an IPv4 `/32`
+to the server or endpoint address; in `ip -6 route show`, match an IPv6 `/128`
+the same way. Then `sudo ip route del <ip>` or `sudo ip -6 route del <ip>`.
 A normal `Ctrl+C` cleans up.
 
 ## Project layout

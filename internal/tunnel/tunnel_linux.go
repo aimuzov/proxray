@@ -115,12 +115,19 @@ func wireguardBypassHops(hops []serverHop) ([]serverHop, error) {
 		if err != nil {
 			return nil, err
 		}
+		if len(endpoints) == 0 {
+			continue
+		}
+		mark, err := wireguardFwmark(h.iface)
+		if err != nil {
+			return nil, err
+		}
 		for _, ip := range endpoints {
 			if _, ok := seenIP[ip]; ok {
 				continue
 			}
 			seenIP[ip] = struct{}{}
-			hop, err := nextHop(ip)
+			hop, err := nextHopMark(ip, mark)
 			if err != nil {
 				return nil, fmt.Errorf("wireguard %s endpoint %s: %w", h.iface, ip, err)
 			}

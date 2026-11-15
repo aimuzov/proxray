@@ -55,6 +55,12 @@ func TestParseWGEndpoints(t *testing.T) {
 	}
 }
 
+func TestParseWGFwmark(t *testing.T) {
+	if parseWGFwmark("off\n") != "" || parseWGFwmark("0") != "" || parseWGFwmark("51820\n") != "51820" {
+		t.Fatal("fwmark parse mismatch")
+	}
+}
+
 func TestLinkIsWireGuard(t *testing.T) {
 	if linkIsWireGuard("2: eth0: <BROADCAST>\n    link/ether aa:bb") {
 		t.Fatal("ethernet reported as wireguard")
