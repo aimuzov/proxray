@@ -13,19 +13,15 @@ import (
 	"github.com/aimuzov/proxray/internal/log"
 )
 
-// Tunnel is a running TUN tunnel and the routing changes it installed.
 type Tunnel struct {
 	teardown []func()
 }
 
-// serverHop records how to reach an IP around the tunnel.
 type serverHop struct {
 	ip string
 	routeHop
 }
 
-// Start creates the tun device, points all traffic at the SOCKS proxy via
-// tun2socks, and installs the routing changes. It requires root.
 func Start(opts Options) (*Tunnel, error) {
 	opts.withDefaults()
 
@@ -36,9 +32,6 @@ func Start(opts Options) (*Tunnel, error) {
 		return nil, fmt.Errorf("TUN mode requires the resolved server IP(s) to pin around the tunnel")
 	}
 
-	// Discover the current next hop to each server IP before touching routes,
-	// so the proxy's own connection keeps using whatever path works now (a
-	// physical gateway, or an already-active VPN interface).
 	hops := make([]serverHop, 0, len(opts.ServerIPs))
 	for _, ip := range opts.ServerIPs {
 		hop, err := nextHop(ip)
@@ -71,8 +64,6 @@ func Start(opts Options) (*Tunnel, error) {
 		return nil, cause
 	}
 
-	// Address the interface and bring it up. 198.18.0.0/15 is the benchmarking
-	// range tun2socks uses as a non-routable local endpoint.
 	if err := run("ip", "addr", "replace", opts.TunIP+"/15", "dev", opts.TunName); err != nil {
 		return rollback(fmt.Errorf("configure %s: %w", opts.TunName, err))
 	}
@@ -80,9 +71,6 @@ func Start(opts Options) (*Tunnel, error) {
 		return rollback(fmt.Errorf("bring up %s: %w", opts.TunName, err))
 	}
 
-	// Pin each server IP (and any WireGuard endpoint it rides on) to its
-	// current next hop. `ip route add` fails if that prefix already exists, so
-	// a route another VPN installed is left untouched and setup aborts.
 	for _, h := range hops {
 		if err := addHostRoute(h); err != nil {
 			return rollback(fmt.Errorf("pin route %s: %w", h.ip, err))
@@ -91,8 +79,6 @@ func Start(opts Options) (*Tunnel, error) {
 		t.teardown = append(t.teardown, func() { _ = delHostRoute(ip) })
 	}
 
-	// Override the default route with two /1 routes scoped to the tun device,
-	// leaving the real default route intact for clean teardown.
 	for _, cidr := range []string{"0.0.0.0/1", "128.0.0.0/1"} {
 		if err := run("ip", "route", "add", cidr, "dev", opts.TunName); err != nil {
 			return rollback(fmt.Errorf("install default override %s: %w", cidr, err))
@@ -101,10 +87,6 @@ func Start(opts Options) (*Tunnel, error) {
 		t.teardown = append(t.teardown, func() { _ = run("ip", "route", "del", cidr) })
 	}
 
-	// Block global IPv6 by routing it to the loopback. The proxy path is IPv4,
-	// so without this, IPv6-capable sites connect over IPv6 outside the tunnel.
-	// Link-local keeps working via its more-specific route. Best-effort: a
-	// failure is logged and startup continues, which can leave an IPv6 leak.
 	for _, cidr := range []string{"::/1", "8000::/1"} {
 		if err := run("ip", "-6", "route", "add", cidr, "dev", "lo"); err != nil {
 			log.Warn("could not block IPv6 (possible IPv6 leak)", "cidr", cidr, "err", err)
@@ -117,9 +99,6 @@ func Start(opts Options) (*Tunnel, error) {
 	return t, nil
 }
 
-// wireguardBypassHops pins the UDP endpoints of a WireGuard device that the
-// proxy server is reached through. Without those routes, the /1 overrides
-// capture the encapsulated packets and loop them back into the tunnel.
 func wireguardBypassHops(hops []serverHop) ([]serverHop, error) {
 	seenIface := map[string]struct{}{}
 	seenIP := map[string]struct{}{}
@@ -182,7 +161,6 @@ func hostRouteArgs(action string, h serverHop) []string {
 	return args
 }
 
-// Close stops the tunnel and reverses the routing changes in reverse order.
 func (t *Tunnel) Close() error {
 	if t == nil {
 		return nil

@@ -14,10 +14,6 @@ import (
 	"time"
 )
 
-// TestLinuxTUNCarriesTCP starts a real tun device and checks that a TCP
-// connection opened by this process is delivered to the local SOCKS5 proxy
-// with the original destination. Gated so ordinary `go test` stays offline
-// and unprivileged.
 func TestLinuxTUNCarriesTCP(t *testing.T) {
 	if os.Getenv("PROXRAY_TUN_INTEGRATION") == "" {
 		t.Skip("set PROXRAY_TUN_INTEGRATION=1 to exercise a real tun device (needs root)")
@@ -87,7 +83,6 @@ func TestLinuxTUNCarriesTCP(t *testing.T) {
 	}
 }
 
-// readSOCKS5Connect accepts one unauthenticated CONNECT and returns host:port.
 func readSOCKS5Connect(c net.Conn) (string, error) {
 	_ = c.SetDeadline(time.Now().Add(5 * time.Second))
 	head := make([]byte, 2)
@@ -131,7 +126,6 @@ func readSOCKS5Connect(c net.Conn) (string, error) {
 		return "", err
 	}
 	port := binary.BigEndian.Uint16(portb[:])
-	// Reply success, bound 0.0.0.0:0.
 	if _, err := c.Write([]byte{0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0}); err != nil {
 		return "", err
 	}

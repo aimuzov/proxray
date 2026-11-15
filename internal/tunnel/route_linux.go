@@ -9,15 +9,12 @@ import (
 	"strings"
 )
 
-// routeHop is how the kernel currently reaches an address.
 type routeHop struct {
-	gateway string // empty for an on-link route
+	gateway string
 	iface   string
-	onlink  bool // gateway is not covered by a link-scope route
+	onlink  bool
 }
 
-// parseIPRouteGet extracts the gateway, interface, and onlink flag from
-// `ip route get <dest>` output.
 func parseIPRouteGet(output string) routeHop {
 	var hop routeHop
 	line, _, _ := strings.Cut(output, "\n")
@@ -39,9 +36,6 @@ func parseIPRouteGet(output string) routeHop {
 	return hop
 }
 
-// nextHop reports how the system currently routes to dest, so the proxy
-// server's traffic can be pinned to that path while everything else is
-// redirected into the tunnel.
 func nextHop(dest string) (routeHop, error) {
 	out, err := exec.Command("ip", "route", "get", dest).Output()
 	if err != nil {
@@ -54,8 +48,6 @@ func nextHop(dest string) (routeHop, error) {
 	return hop, nil
 }
 
-// InterfaceTo reports the network interface the system currently uses to reach
-// dest, queried before the tunnel rewrites the routing table.
 func InterfaceTo(dest string) (string, error) {
 	hop, err := nextHop(dest)
 	if err != nil {
@@ -64,8 +56,6 @@ func InterfaceTo(dest string) (string, error) {
 	return hop.iface, nil
 }
 
-// parseWGEndpoints lists peer endpoint IPs from `wg show <iface> endpoints`.
-// Lines look like "<public-key>\t<ip>:<port>" or "<key>\t(none)".
 func parseWGEndpoints(output string) []string {
 	var ips []string
 	seen := map[string]struct{}{}
@@ -91,14 +81,10 @@ func parseWGEndpoints(output string) []string {
 	return ips
 }
 
-// linkIsWireGuard reports whether `ip -d link show` output describes a
-// WireGuard device.
 func linkIsWireGuard(output string) bool {
 	return strings.Contains(output, "wireguard")
 }
 
-// wireguardEndpoints returns the peer endpoint IPs of iface when it is a
-// WireGuard device. A non-WireGuard interface yields a nil slice.
 func wireguardEndpoints(iface string) ([]string, error) {
 	link, err := exec.Command("ip", "-d", "link", "show", "dev", iface).CombinedOutput()
 	if err != nil {
@@ -114,7 +100,6 @@ func wireguardEndpoints(iface string) ([]string, error) {
 	return parseWGEndpoints(string(out)), nil
 }
 
-// run executes a command, wrapping failures with the command line for context.
 func run(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	if out, err := cmd.CombinedOutput(); err != nil {
