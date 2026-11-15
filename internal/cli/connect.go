@@ -38,7 +38,7 @@ func newConnectCmd() *cobra.Command {
 			"or a case-insensitive substring of the server tag.\n\n" +
 			"Modes:\n" +
 			"  proxy  local SOCKS5 + HTTP proxy on 127.0.0.1 (no root)\n" +
-			"  tun    system-wide VPN via a utun device (requires sudo, macOS)",
+			"  tun    system-wide VPN via a TUN device (requires sudo; macOS and Linux)",
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completeServerSelector,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -110,7 +110,7 @@ func newConnectCmd() *cobra.Command {
 	_ = cmd.RegisterFlagCompletionFunc("mode", func(*cobra.Command, []string, string) ([]cobra.Completion, cobra.ShellCompDirective) {
 		return []cobra.Completion{
 			cobra.CompletionWithDesc("proxy", "local SOCKS5 + HTTP proxy (no root)"),
-			cobra.CompletionWithDesc("tun", "system-wide VPN via utun (sudo)"),
+			cobra.CompletionWithDesc("tun", "system-wide VPN via a TUN device (sudo)"),
 		}, cobra.ShellCompDirectiveNoFileComp
 	})
 	return cmd
