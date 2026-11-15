@@ -12,6 +12,7 @@ import (
 type routeHop struct {
 	gateway string
 	iface   string
+	src     string
 	onlink  bool
 }
 
@@ -28,6 +29,10 @@ func parseIPRouteGet(output string) routeHop {
 		case "dev":
 			if i+1 < len(fields) {
 				hop.iface = fields[i+1]
+			}
+		case "src":
+			if i+1 < len(fields) {
+				hop.src = fields[i+1]
 			}
 		case "onlink":
 			hop.onlink = true
@@ -64,7 +69,7 @@ func InterfaceTo(dest string) (string, error) {
 	return hop.iface, nil
 }
 
-func parseWGEndpoints(output string) []string {
+func parseWGEndpoints(output string) ([]string, error) {
 	var ips []string
 	seen := map[string]struct{}{}
 	for _, line := range strings.Split(output, "\n") {
@@ -74,11 +79,11 @@ func parseWGEndpoints(output string) []string {
 		}
 		host, _, err := net.SplitHostPort(fields[1])
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("wireguard endpoint %q: %w", fields[1], err)
 		}
 		host = strings.Trim(host, "[]")
 		if net.ParseIP(host) == nil {
-			continue
+			return nil, fmt.Errorf("wireguard endpoint %q is not an IP address", host)
 		}
 		if _, ok := seen[host]; ok {
 			continue
@@ -86,11 +91,17 @@ func parseWGEndpoints(output string) []string {
 		seen[host] = struct{}{}
 		ips = append(ips, host)
 	}
-	return ips
+	return ips, nil
 }
 
 func linkIsWireGuard(output string) bool {
-	return strings.Contains(output, "wireguard")
+	for _, line := range strings.Split(output, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) > 0 && fields[0] == "wireguard" {
+			return true
+		}
+	}
+	return false
 }
 
 func wireguardEndpoints(iface string) ([]string, error) {
@@ -105,7 +116,7 @@ func wireguardEndpoints(iface string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("interface %s is WireGuard but its endpoints could not be read (is wireguard-tools installed?): %w: %s", iface, err, strings.TrimSpace(string(out)))
 	}
-	return parseWGEndpoints(string(out)), nil
+	return parseWGEndpoints(string(out))
 }
 
 func parseWGFwmark(output string) string {

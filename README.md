@@ -264,15 +264,15 @@ overridable with the global `--home` flag.
 1. the server address is resolved to IP(s), and a host route to each is pinned to
    its current next hop (a physical gateway, or an already-active VPN interface),
    so the proxy's own connection to the server does not loop back into the tunnel;
-2. a TUN device is created (`utun123` on macOS, `proxray0` on Linux) and tun2socks
+2. a TUN device is created (the requested name is `utun123` on macOS, though the
+   kernel may assign the next free `utun`, and `proxray0` on Linux) and tun2socks
    forwards its traffic to the local SOCKS proxy served by xray;
 3. the default route is overridden with two `/1` routes scoped to that device
    (the real default route is left intact for a clean teardown);
-4. global IPv6 is routed into the loopback on a best-effort basis, so
-   IPv6-capable sites (Google, YouTube) fall back to IPv4 through the tunnel;
-   link-local IPv6 keeps working via its more-specific route. If that route
-   cannot be installed, proxray logs a warning and IPv6 traffic may leave
-   outside the tunnel;
+4. global IPv6 is blackholed (`::/1` and `8000::/1`), so IPv6-capable sites fall
+   back to IPv4 through the tunnel. A more-specific IPv6 route that already
+   exists (for example a VPN `2000::/3`) still wins, and link-local IPv6 keeps
+   working. If the blackhole routes cannot be installed, TUN mode does not start;
 5. on `Ctrl+C` all routes are removed in reverse order.
 
 ## Limitations
@@ -282,17 +282,16 @@ overridable with the global `--home` flag.
 - **`--bypass` does not apply to JSON subscription entries**: their routing comes
   from the panel's own rules.
 - **TUN mode works on macOS and Linux.** `--system-proxy` is macOS-only.
-- **IPv6 blocking in TUN mode is best-effort** (the proxy path is IPv4). When
-  the loopback routes install, IPv6-only destinations become unreachable,
-  except where a more-specific IPv6 route already exists (for example a VPN
-  `2000::/3`); that traffic bypasses the tunnel with no warning. When the
-  loopback routes cannot be installed, proxray logs `could not block IPv6` and
-  IPv6 traffic may bypass the tunnel.
+- **IPv6 is blackholed in TUN mode** (the proxy path is IPv4). IPv6-only
+  destinations become unreachable, except where a more-specific IPv6 route
+  already exists (for example a VPN `2000::/3`); that traffic bypasses the
+  tunnel. If the blackhole routes cannot be installed, `connect --mode tun`
+  fails instead of starting with an IPv6 leak.
 - `connect` runs in the **foreground**; there is no background daemon yet.
 - A `kill -9` skips cleanup: a system proxy stays set (`sudo proxray system-proxy
 off`). On macOS, TUN IPv6-block routes remain (`sudo route -n delete -inet6 -net
 ::/1; sudo route -n delete -inet6 -net 8000::/1`). On Linux, remove them with
-`sudo ip route del 0.0.0.0/1; sudo ip route del 128.0.0.0/1; sudo ip -6 route del ::/1; sudo ip -6 route del 8000::/1`.
+`sudo ip route del 0.0.0.0/1 dev proxray0; sudo ip route del 128.0.0.0/1 dev proxray0; sudo ip -6 route del blackhole ::/1; sudo ip -6 route del blackhole 8000::/1`.
 Linux also leaves a host route for each proxy server IP and, when the server
 was reached through WireGuard, for that tunnel's endpoint. The next hop is
 whatever was in use at connect time: a physical gateway, an on-link interface,

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -22,30 +23,13 @@ func TestLinuxTUNCarriesTCP(t *testing.T) {
 		t.Fatal("TUN integration test requires root")
 	}
 
-	got := make(chan string, 1)
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer ln.Close()
-	go func() {
-		c, err := ln.Accept()
-		if err != nil {
-			return
-		}
-		defer c.Close()
-		dst, err := readSOCKS5Connect(c)
-		if err != nil {
-			t.Errorf("socks: %v", err)
-			return
-		}
-		got <- dst
-		_, _ = io.WriteString(c, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
-	}()
+	var mu sync.Mutex
+	var dsts []string
+	ln := socksSink(t, &mu, &dsts)
 
 	tun, err := Start(Options{
 		SocksAddr: ln.Addr().String(),
-		ServerIPs: []string{"9.9.9.9"},
+		ServerIPs: []string{"9.9.9.9", "9.9.9.9"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -57,13 +41,29 @@ func TestLinuxTUNCarriesTCP(t *testing.T) {
 		t.Fatal(err)
 	}
 	routes := string(out)
-	for _, want := range []string{"0.0.0.0/1 dev proxray0", "128.0.0.0/1 dev proxray0", "9.9.9.9"} {
+	for _, want := range []string{"0.0.0.0/1 dev proxray0", "128.0.0.0/1 dev proxray0"} {
 		if !strings.Contains(routes, want) {
 			t.Fatalf("routing table missing %q:\n%s", want, routes)
 		}
 	}
+	ip6, err := exec.Command("ip", "-6", "route", "show").CombinedOutput()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"blackhole ::/1", "blackhole 8000::/1"} {
+		if !strings.Contains(string(ip6), want) {
+			t.Fatalf("IPv6 table missing %q:\n%s", want, ip6)
+		}
+	}
+	server, err := exec.Command("ip", "route", "show", "9.9.9.9").CombinedOutput()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(server), "proxray0") || !strings.Contains(string(server), "9.9.9.9") {
+		t.Fatalf("server route = %q", server)
+	}
 
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{Proxy: nil}}
 	resp, err := client.Get("http://1.2.3.4/")
 	if err != nil {
 		t.Fatal(err)
@@ -73,14 +73,84 @@ func TestLinuxTUNCarriesTCP(t *testing.T) {
 	if string(body) != "OK" {
 		t.Fatalf("body = %q", body)
 	}
-	select {
-	case dst := <-got:
-		if dst != "1.2.3.4:80" {
-			t.Fatalf("socks destination = %q, want 1.2.3.4:80", dst)
-		}
-	default:
-		t.Fatal("socks server did not observe a connect")
+	time.Sleep(200 * time.Millisecond)
+	conn, _ := net.DialTimeout("tcp", "9.9.9.9:853", 300*time.Millisecond)
+	if conn != nil {
+		conn.Close()
 	}
+	time.Sleep(200 * time.Millisecond)
+	mu.Lock()
+	seen := append([]string(nil), dsts...)
+	mu.Unlock()
+	if len(seen) != 1 || seen[0] != "1.2.3.4:80" {
+		t.Fatalf("socks destinations = %#v", seen)
+	}
+}
+
+func TestLinuxTUNReclaimsOwnRoutes(t *testing.T) {
+	if os.Getenv("PROXRAY_TUN_INTEGRATION") == "" {
+		t.Skip("set PROXRAY_TUN_INTEGRATION=1 to exercise a real tun device (needs root)")
+	}
+	ln := socksSink(t, nil, nil)
+	tun, err := Start(Options{SocksAddr: ln.Addr().String(), ServerIPs: []string{"9.9.9.9"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tun.teardown = []func(){tun.teardown[0]}
+	tun.Close()
+	tun, err = Start(Options{SocksAddr: ln.Addr().String(), ServerIPs: []string{"9.9.9.9"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tun.Close()
+	out, _ := exec.Command("ip", "route", "show", "0.0.0.0/1").CombinedOutput()
+	if strings.TrimSpace(string(out)) != "" {
+		t.Fatalf("0.0.0.0/1 left behind: %s", out)
+	}
+}
+
+func TestLinuxTUNLeavesForeignHalfRoute(t *testing.T) {
+	if os.Getenv("PROXRAY_TUN_INTEGRATION") == "" {
+		t.Skip("set PROXRAY_TUN_INTEGRATION=1 to exercise a real tun device (needs root)")
+	}
+	if err := run("ip", "route", "add", "blackhole", "0.0.0.0/1"); err != nil {
+		t.Fatal(err)
+	}
+	defer run("ip", "route", "del", "blackhole", "0.0.0.0/1")
+	ln := socksSink(t, nil, nil)
+	if _, err := Start(Options{SocksAddr: ln.Addr().String(), ServerIPs: []string{"9.9.9.9"}}); err == nil {
+		t.Fatal("Start replaced a foreign 0.0.0.0/1")
+	}
+	out, _ := exec.Command("ip", "route", "show", "0.0.0.0/1").CombinedOutput()
+	if !strings.Contains(string(out), "blackhole") {
+		t.Fatalf("foreign route = %q", out)
+	}
+}
+
+func socksSink(t *testing.T, mu *sync.Mutex, dsts *[]string) net.Listener {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { ln.Close() })
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			dst, err := readSOCKS5Connect(c)
+			if err == nil && mu != nil && dsts != nil {
+				mu.Lock()
+				*dsts = append(*dsts, dst)
+				mu.Unlock()
+			}
+			_, _ = io.WriteString(c, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
+			c.Close()
+		}
+	}()
+	return ln
 }
 
 func readSOCKS5Connect(c net.Conn) (string, error) {

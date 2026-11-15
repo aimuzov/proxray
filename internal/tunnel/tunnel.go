@@ -19,7 +19,7 @@ type Options struct {
 	TunName string
 	// TunIP is the address assigned to the tun device (default "198.18.0.1").
 	TunIP string
-	// MTU for the tun device (default 1500).
+	// MTU for the tun device (default 1500, 1400 on Linux).
 	MTU int
 	// LogLevel for tun2socks (default "warning").
 	LogLevel string
@@ -40,7 +40,11 @@ func (o *Options) withDefaults() {
 		o.TunIP = "198.18.0.1"
 	}
 	if o.MTU == 0 {
-		o.MTU = 1500
+		if runtime.GOOS == "linux" {
+			o.MTU = 1400
+		} else {
+			o.MTU = 1500
+		}
 	}
 	if o.LogLevel == "" {
 		// tun2socks parses zapcore levels ("warn"), not xray's "warning".
