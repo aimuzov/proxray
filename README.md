@@ -268,9 +268,11 @@ overridable with the global `--home` flag.
    forwards its traffic to the local SOCKS proxy served by xray;
 3. the default route is overridden with two `/1` routes scoped to that device
    (the real default route is left intact for a clean teardown);
-4. global IPv6 is routed into the loopback (blocked), so IPv6-capable sites
-   (Google, YouTube) don't leak outside the tunnel — apps fall back to IPv4
-   through the tunnel; link-local IPv6 keeps working via its more-specific route;
+4. global IPv6 is routed into the loopback on a best-effort basis, so
+   IPv6-capable sites (Google, YouTube) fall back to IPv4 through the tunnel;
+   link-local IPv6 keeps working via its more-specific route. If that route
+   cannot be installed, proxray logs a warning and IPv6 traffic may leave
+   outside the tunnel;
 5. on `Ctrl+C` all routes are removed in reverse order.
 
 ## Limitations
@@ -280,13 +282,20 @@ overridable with the global `--home` flag.
 - **`--bypass` does not apply to JSON subscription entries**: their routing comes
   from the panel's own rules.
 - **TUN mode works on macOS and Linux.** `--system-proxy` is macOS-only.
-- **IPv6 is blocked in TUN mode** (the proxy path is IPv4); IPv6-only
-  destinations become unreachable while connected.
+- **IPv6 blocking in TUN mode is best-effort** (the proxy path is IPv4). When
+  the loopback routes install, IPv6-only destinations become unreachable. When
+  they do not, proxray logs `could not block IPv6` and that traffic may bypass
+  the tunnel.
 - `connect` runs in the **foreground**; there is no background daemon yet.
 - A `kill -9` skips cleanup: a system proxy stays set (`sudo proxray system-proxy
 off`). On macOS, TUN IPv6-block routes remain (`sudo route -n delete -inet6 -net
 ::/1; sudo route -n delete -inet6 -net 8000::/1`). On Linux, remove them with
 `sudo ip route del 0.0.0.0/1; sudo ip route del 128.0.0.0/1; sudo ip -6 route del ::/1; sudo ip -6 route del 8000::/1`.
+Linux also leaves a host route for each proxy server IP (and, when the server
+was reached through WireGuard, for that tunnel's endpoint) via the original
+gateway. Check `ip route show` for a `/32` whose gateway is your physical
+router, confirm the address is the server you connected to, then
+`sudo ip route del <that-ip>` (use `ip -6 route del` for an IPv6 endpoint).
 A normal `Ctrl+C` cleans up.
 
 ## Project layout
