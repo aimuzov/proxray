@@ -79,6 +79,18 @@ func TestLinkIsWireGuard(t *testing.T) {
 	}
 }
 
+func TestEndpointUsesIface(t *testing.T) {
+	hops := []serverHop{{
+		ip: "203.0.113.5", routeHop: routeHop{iface: "wg0"},
+	}}
+	if !endpointUsesIface(hops, "wg0", "203.0.113.5") {
+		t.Fatal("collision not detected")
+	}
+	if endpointUsesIface(hops, "eth0", "203.0.113.5") {
+		t.Fatal("different interface treated as a collision")
+	}
+}
+
 func TestHostRouteMatches(t *testing.T) {
 	h := serverHop{ip: "1.2.3.4", routeHop: routeHop{gateway: "10.0.0.1", iface: "eth0", src: "10.0.0.8"}}
 	if !hostRouteMatches("1.2.3.4 via 10.0.0.1 dev eth0 src 10.0.0.8\n", h) {

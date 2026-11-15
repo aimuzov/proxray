@@ -127,6 +127,9 @@ func wireguardBypassHops(hops []serverHop) ([]serverHop, error) {
 			return nil, err
 		}
 		for _, ip := range endpoints {
+			if endpointUsesIface(hops, h.iface, ip) {
+				return nil, fmt.Errorf("wireguard %s endpoint %s is also pinned through %s; the main-table host route would capture the tunnel's own transport", h.iface, ip, h.iface)
+			}
 			if _, ok := seenIP[ip]; ok {
 				continue
 			}
@@ -142,6 +145,15 @@ func wireguardBypassHops(hops []serverHop) ([]serverHop, error) {
 		}
 	}
 	return out, nil
+}
+
+func endpointUsesIface(hops []serverHop, iface, ip string) bool {
+	for _, h := range hops {
+		if h.ip == ip && h.iface == iface {
+			return true
+		}
+	}
+	return false
 }
 
 func installHostRoute(h serverHop) (func(), error) {
