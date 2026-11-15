@@ -42,7 +42,7 @@
   - `connect --system-proxy` — выставляет системный SOCKS + HTTP/HTTPS прокси
     macOS (нужен `sudo`), чтобы браузеры и большинство приложений шли через него
     без правки таблицы маршрутов — уживается с другим активным VPN;
-  - `connect --mode tun` — полноценный системный VPN через utun (нужен `sudo`).
+  - `connect --mode tun` — полноценный системный VPN через TUN (нужен `sudo`; macOS и Linux).
 
 > **Примечание**: xray-core не умеет TUIC, а также Hysteria2 с обфускацией.
 > Такие серверы всё равно парсятся и показываются (с пометкой `unsupported`), но
@@ -64,7 +64,7 @@ base64-список ссылок ──► link.Parse ──► []link.Server
               ▼                             ▼                             ▼
       proxy: SOCKS5/HTTP          --system-proxy: networksetup     tun: tun2socks
       на 127.0.0.1                ставит системный SOCKS/HTTP       + таблица маршрутов
-      (без root)                  (sudo)                           (sudo, utun)
+      (без root)                  (sudo)                           (sudo, TUN)
 ```
 
 ## Установка
@@ -212,7 +212,7 @@ sudo proxray connect 1 --mode tun       # полноценный системн�
   таблицу маршрутов, поэтому **уживается с другим активным VPN**. Нужен `sudo`;
   прежние настройки прокси восстанавливаются при выходе. Если сессию убили
   (`kill -9`) и прокси завис — сбросить командой `sudo proxray system-proxy off`.
-- **`connect --mode tun`** — полноценный системный VPN через utun, перехватывает
+- **`connect --mode tun`** — полноценный системный VPN через TUN (`utun` на macOS, `proxray0` на Linux), перехватывает
   весь трафик. Нужен `sudo`. Если параллельно активен другой VPN — сначала
   отключи его, чтобы туннели не дрались за маршруты/DNS.
 
@@ -225,7 +225,7 @@ sudo proxray connect 1 --mode tun       # полноценный системн�
 [Loyalsoldier/v2ray-rules-dat](https://github.com/Loyalsoldier/v2ray-rules-dat)
 в `<config>/geo/` и обновляются раз в сутки. Обход действует в режимах proxy и
 `--system-proxy`. В режиме tun он **пока не поддерживается** (сокеты
-direct-outbound всё равно зацикливаются обратно в utun), поэтому
+direct-outbound всё равно зацикливаются обратно в TUN), поэтому
 `connect --mode tun` принудительно отключает обход с предупреждением и гонит весь
 трафик через туннель.
 
@@ -257,16 +257,16 @@ proxray system-proxy off        # аварийный сброс системно
 пользователя (`~/Library/Application Support/proxray` на macOS),
 переопределяется глобальным флагом `--home`.
 
-## Детали режима TUN (macOS)
+## Детали режима TUN (macOS и Linux)
 
 1. адрес сервера резолвится в IP, и на каждый добавляется host-маршрут к текущему
    next-hop (физический шлюз либо интерфейс уже активного VPN) — чтобы соединение
    прокси с сервером не зациклилось обратно в туннель;
-2. создаётся устройство `utun`, и tun2socks форвардит его трафик на локальный
-   SOCKS, который отдаёт xray;
-3. дефолтный маршрут перекрывается двумя `/1`-маршрутами на utun (реальный default
+2. создаётся TUN-device (`utun123` на macOS, `proxray0` на Linux), и tun2socks
+   форвардит его трафик на локальный SOCKS, который отдаёт xray;
+3. дефолтный маршрут перекрывается двумя `/1`-маршрутами на это устройство (реальный default
    остаётся нетронутым для корректного отката);
-4. глобальный IPv6 заворачивается в `lo0` (блокируется), чтобы IPv6-сайты
+4. глобальный IPv6 заворачивается в loopback (блокируется), чтобы IPv6-сайты
    (Google, YouTube) не утекали мимо туннеля — приложения откатываются на IPv4
    через туннель; link-local IPv6 продолжает работать по более специфичному
    маршруту;
@@ -278,14 +278,15 @@ proxray system-proxy off        # аварийный сброс системно
   показываются как `unsupported`).
 - **`--bypass` не применяется к записям JSON-подписки**: маршрутизацию задают
   правила самой панели.
-- **TUN и `--system-proxy` пока только для macOS**.
+- **Режим TUN работает на macOS и Linux.** `--system-proxy` — только macOS.
 - **В режиме TUN IPv6 заблокирован** (путь прокси — IPv4); IPv6-only ресурсы во
   время подключения недоступны.
 - `connect` работает в **foreground**; фонового демона пока нет.
 - `kill -9` пропускает очистку: системный прокси останется включённым
-  (`sudo proxray system-proxy off`), а IPv6-блок-маршруты TUN — в таблице
+  (`sudo proxray system-proxy off`). На macOS остаются IPv6-блок-маршруты
   (`sudo route -n delete -inet6 -net ::/1; sudo route -n delete -inet6 -net
-8000::/1`). Обычный `Ctrl+C` всё убирает сам.
+8000::/1`). На Linux: `sudo ip route del 0.0.0.0/1; sudo ip route del 128.0.0.0/1; sudo ip -6 route del ::/1; sudo ip -6 route del 8000::/1`.
+  Обычный `Ctrl+C` всё убирает сам.
 
 ## Структура проекта
 
@@ -295,7 +296,7 @@ proxray system-proxy off        # аварийный сброс системно
 | `internal/profile`  | загрузка подписки, декод тела + заголовков                    |
 | `internal/rawconf`  | JSON-подписки: разбор и правка готовых конфигов               |
 | `internal/xray`     | сборка конфига xray-core из сервера, запуск встроенного ядра |
-| `internal/tunnel`   | режим TUN: tun2socks + управление маршрутами macOS           |
+| `internal/tunnel`   | режим TUN: tun2socks + маршруты macOS/Linux              |
 | `internal/sysproxy` | системный прокси macOS через networksetup                    |
 | `internal/store`    | хранение подписок и кэша ссылок                              |
 | `internal/cli`      | команды cobra                                                |

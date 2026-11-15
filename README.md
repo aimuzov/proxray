@@ -41,7 +41,7 @@ binaries required.
   - `connect --system-proxy` — sets the macOS system SOCKS + HTTP/HTTPS proxy
     (needs `sudo`), so browsers and most apps go through it without touching the
     routing table — coexists with another active VPN;
-  - `connect --mode tun` — full system-wide VPN via a utun device (needs `sudo`).
+  - `connect --mode tun` — full system-wide VPN via a TUN device (needs `sudo`; macOS and Linux).
 
 > **Note**: xray-core cannot dial TUIC, nor Hysteria2 with obfuscation. Such
 > servers are still parsed and listed (marked `unsupported`), but you cannot
@@ -63,7 +63,7 @@ base64 list of links ──► link.Parse ──► []link.Server
               ▼                             ▼                             ▼
       proxy: SOCKS5/HTTP          --system-proxy: networksetup     tun: tun2socks
       on 127.0.0.1                sets system SOCKS/HTTP            + route table
-      (no root)                   (sudo)                           (sudo, utun)
+      (no root)                   (sudo)                           (sudo, TUN)
 ```
 
 ## Install
@@ -213,7 +213,8 @@ In plain proxy mode, point apps at `socks5://127.0.0.1:10808` (Firefox: enable
   `sudo`; the previous proxy settings are restored on exit. If a session was
   killed (`kill -9`) and the proxy stuck, reset it with
   `sudo proxray system-proxy off`.
-- **`connect --mode tun`** — a full system VPN via a utun device; captures all
+- **`connect --mode tun`** — a full system VPN via a TUN device (`utun` on macOS,
+  `proxray0` on Linux); captures all
   traffic. Needs `sudo`. If another VPN is active at the same time, disconnect it
   first so the tunnels don't fight over routes/DNS.
 
@@ -226,7 +227,7 @@ By default proxray routes Russian domains and IP ranges (`geosite:category-ru`,
 [Loyalsoldier/v2ray-rules-dat](https://github.com/Loyalsoldier/v2ray-rules-dat)
 into `<config>/geo/` and refreshes them once a day. Bypass is effective in proxy
 and `--system-proxy` modes. In tun mode it is **not supported yet** (the direct
-outbound's sockets still loop back through utun), so `connect --mode tun` forces
+outbound's sockets still loop back through the TUN device), so `connect --mode tun` forces
 bypass off with a warning and routes everything through the tunnel.
 
 ```sh
@@ -258,16 +259,16 @@ State (subscriptions and cached links) is stored as `state.json` in the
 per-user config directory (`~/Library/Application Support/proxray` on macOS),
 overridable with the global `--home` flag.
 
-## TUN mode details (macOS)
+## TUN mode details (macOS and Linux)
 
 1. the server address is resolved to IP(s), and a host route to each is pinned to
    its current next hop (a physical gateway, or an already-active VPN interface),
    so the proxy's own connection to the server does not loop back into the tunnel;
-2. a `utun` device is created and tun2socks forwards its traffic to the local
-   SOCKS proxy served by xray;
-3. the default route is overridden with two `/1` routes scoped to the utun device
+2. a TUN device is created (`utun123` on macOS, `proxray0` on Linux) and tun2socks
+   forwards its traffic to the local SOCKS proxy served by xray;
+3. the default route is overridden with two `/1` routes scoped to that device
    (the real default route is left intact for a clean teardown);
-4. global IPv6 is routed into `lo0` (blocked), so IPv6-capable sites
+4. global IPv6 is routed into the loopback (blocked), so IPv6-capable sites
    (Google, YouTube) don't leak outside the tunnel — apps fall back to IPv4
    through the tunnel; link-local IPv6 keeps working via its more-specific route;
 5. on `Ctrl+C` all routes are removed in reverse order.
@@ -278,13 +279,15 @@ overridable with the global `--home` flag.
   (they are parsed and listed as `unsupported`).
 - **`--bypass` does not apply to JSON subscription entries**: their routing comes
   from the panel's own rules.
-- **TUN and `--system-proxy` are macOS-only** in this version.
+- **TUN mode works on macOS and Linux.** `--system-proxy` is macOS-only.
 - **IPv6 is blocked in TUN mode** (the proxy path is IPv4); IPv6-only
   destinations become unreachable while connected.
 - `connect` runs in the **foreground**; there is no background daemon yet.
 - A `kill -9` skips cleanup: a system proxy stays set (`sudo proxray system-proxy
-off`) and TUN IPv6-block routes remain (`sudo route -n delete -inet6 -net
-::/1; sudo route -n delete -inet6 -net 8000::/1`). A normal `Ctrl+C` cleans up.
+off`). On macOS, TUN IPv6-block routes remain (`sudo route -n delete -inet6 -net
+::/1; sudo route -n delete -inet6 -net 8000::/1`). On Linux, remove them with
+`sudo ip route del 0.0.0.0/1; sudo ip route del 128.0.0.0/1; sudo ip -6 route del ::/1; sudo ip -6 route del 8000::/1`.
+A normal `Ctrl+C` cleans up.
 
 ## Project layout
 
@@ -294,7 +297,7 @@ off`) and TUN IPv6-block routes remain (`sudo route -n delete -inet6 -net
 | `internal/profile`  | fetch a subscription, decode its body + headers             |
 | `internal/rawconf`  | JSON subscriptions: inspect and adjust ready-made configs   |
 | `internal/xray`     | build xray-core config from a server, run the embedded core |
-| `internal/tunnel`   | TUN mode: tun2socks + macOS route management                |
+| `internal/tunnel`   | TUN mode: tun2socks + macOS/Linux route management          |
 | `internal/sysproxy` | macOS system proxy via networksetup                         |
 | `internal/store`    | persist subscriptions and cached links                      |
 | `internal/cli`      | cobra commands                                              |
