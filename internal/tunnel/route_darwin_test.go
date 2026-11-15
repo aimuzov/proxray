@@ -21,8 +21,6 @@ destination: default
 	}
 }
 
-// An interface-only default (e.g. an already-active VPN on utunN) has no
-// gateway line; we must still recover the interface.
 func TestParseRouteGetInterfaceOnly(t *testing.T) {
 	output := `   route to: 1.2.3.4
 destination: default
